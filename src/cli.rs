@@ -3,6 +3,8 @@ use jiff::civil::Date;
 use rust_decimal::Decimal;
 use std::path::PathBuf;
 
+use crate::invoice_input::LineItemInput;
+
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 
 const STYLES: Styles = Styles::styled()
@@ -60,15 +62,21 @@ pub struct GenerateArgs {
     #[arg(long)]
     pub notes: Option<String>,
 
-    /// First item description
+    /// Add a line item. Format: "DESCRIPTION: QUANTITY [@ RATE]"
+    /// (e.g. --item "Consulting: 10 @ 150"). Repeat for multiple items.
+    /// When provided, replaces items from the YAML file entirely.
+    #[arg(long = "item", conflicts_with_all = ["description", "quantity", "rate"])]
+    pub items: Vec<LineItemInput>,
+
+    /// First item description (shortcut; overrides YAML first item)
     #[arg(long)]
     pub description: Option<String>,
 
-    /// First item quantity
+    /// First item quantity (shortcut; overrides YAML first item)
     #[arg(long)]
     pub quantity: Option<Decimal>,
 
-    /// First item rate
+    /// First item rate (shortcut; overrides YAML first item)
     #[arg(long)]
     pub rate: Option<Decimal>,
 
