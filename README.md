@@ -27,6 +27,18 @@ version control and out of spreadsheet tools.
 
 ## Install
 
+### Quick install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/raine/invoice/main/scripts/install.sh | bash
+```
+
+### Homebrew (macOS/Linux)
+
+```sh
+brew install raine/invoice/invoice
+```
+
 ### Cargo
 
 ```sh
