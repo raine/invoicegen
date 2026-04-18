@@ -8,7 +8,9 @@ use std::{
 };
 
 use crate::currency::Currency;
+use crate::domain::{InvoicePatch, PartyPatch};
 use crate::locale::Locale;
+use crate::paths::expand_tilde;
 use crate::xdg;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -57,6 +59,38 @@ pub struct ClientTemplate {
     pub bill_to: Option<String>,
     pub ship_to: Option<String>,
     pub default_rate: Option<Decimal>,
+}
+
+impl AppConfig {
+    pub fn defaults_patch(&self) -> InvoicePatch {
+        InvoicePatch {
+            sender: PartyPatch {
+                name: Some(self.sender.name.clone()),
+                address: self.sender.address.clone(),
+                logo_path: self.sender.logo.as_ref().map(|p| expand_tilde(p)),
+            },
+            tax_rate: Some(self.defaults.tax_rate),
+            tax_note: self.defaults.tax_note.clone(),
+            currency: Some(self.defaults.currency),
+            locale: Some(self.defaults.locale),
+            date_format: Some(self.defaults.date_format.clone()),
+            ..InvoicePatch::default()
+        }
+    }
+
+    pub fn client_patch(&self, key: &str) -> Option<InvoicePatch> {
+        let template = self.clients.get(key)?;
+        Some(InvoicePatch {
+            bill_to: template.bill_to.clone(),
+            ship_to: template.ship_to.clone(),
+            default_rate: template.default_rate,
+            ..InvoicePatch::default()
+        })
+    }
+
+    pub fn client_keys(&self) -> Vec<String> {
+        self.clients.keys().cloned().collect()
+    }
 }
 
 pub fn default_config_path() -> Result<PathBuf> {

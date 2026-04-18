@@ -1,216 +1,107 @@
 use anyhow::{Context, Result, bail};
-use jiff::civil::Date;
-use rust_decimal::Decimal;
-use std::path::{Path, PathBuf};
 
-use crate::cli::GenerateArgs;
-use crate::config::AppConfig;
-use crate::domain::{DomainInvoice, DomainLineItem, Party};
-use crate::invoice_input::{InvoiceFile, LineItemInput};
-use crate::paths::{expand_tilde, resolve_relative};
-
-#[derive(Debug, Clone, Default)]
-pub struct CliOverrides {
-    pub number: Option<u32>,
-    pub date: Option<Date>,
-    pub po: Option<String>,
-    pub client: Option<String>,
-    pub notes: Option<String>,
-    pub first_description: Option<String>,
-    pub first_quantity: Option<Decimal>,
-    pub first_rate: Option<Decimal>,
-    /// When non-empty, replaces invoice.items entirely.
-    pub items: Vec<LineItemInput>,
-    pub tax_rate: Option<Decimal>,
-    pub tax_note: Option<String>,
-    pub bill_to: Option<String>,
-    pub ship_to: Option<String>,
-}
-
-impl From<&GenerateArgs> for CliOverrides {
-    fn from(args: &GenerateArgs) -> Self {
-        Self {
-            number: args.number,
-            date: args.date,
-            po: args.po.clone(),
-            client: args.client.clone(),
-            notes: args.notes.clone(),
-            first_description: args.description.clone(),
-            first_quantity: args.quantity,
-            first_rate: args.rate,
-            items: args.items.clone(),
-            tax_rate: args.tax_rate,
-            tax_note: args.tax_note.clone(),
-            bill_to: args.bill_to.clone(),
-            ship_to: args.ship_to.clone(),
-        }
-    }
-}
+use crate::domain::{InvoiceDocument, InvoiceLineItem, InvoicePatch, LineItemPatch, Party};
 
 pub fn merge(
-    mut invoice: InvoiceFile,
-    config: &AppConfig,
-    overrides: CliOverrides,
-    invoice_dir: &Path,
-) -> Result<DomainInvoice> {
-    apply_cli_overrides(&mut invoice, overrides);
+    layers: impl IntoIterator<Item = InvoicePatch>,
+    selected_client: Option<&str>,
+    available_clients: &[String],
+) -> Result<InvoiceDocument> {
+    let mut merged = InvoicePatch::default();
+    for layer in layers {
+        merged.apply(layer);
+    }
 
-    let template = invoice
-        .client
-        .as_deref()
-        .and_then(|c| config.clients.get(c));
+    let bill_to = merged.bill_to.with_context(|| match selected_client {
+        Some(client) => format!(
+            "bill_to missing. Set it in the invoice, or define client '{client}' in config (available: {available_clients:?})"
+        ),
+        None => {
+            "bill_to missing. Set it in the invoice, or set 'client' to a key defined in config"
+                .to_string()
+        }
+    })?;
 
-    let bill_to = invoice
-        .client_override
-        .bill_to
-        .clone()
-        .or_else(|| template.and_then(|t| t.bill_to.clone()))
-        .with_context(|| {
-            let keys: Vec<_> = config.clients.keys().cloned().collect();
-            match &invoice.client {
-                Some(c) => format!(
-                    "bill_to missing. Set it under client_override in the invoice, or define client '{c}' in config (available: {keys:?})"
-                ),
-                None => "bill_to missing. Set it under client_override in the invoice, or set 'client' to a key defined in config".to_string(),
-            }
-        })?;
-    let ship_to = invoice
-        .client_override
-        .ship_to
-        .clone()
-        .or_else(|| template.and_then(|t| t.ship_to.clone()))
-        .unwrap_or_default();
-    let default_rate = invoice
-        .client_override
-        .default_rate
-        .or_else(|| template.and_then(|t| t.default_rate));
-
-    if invoice.items.is_empty() {
+    let items = merged.items.take().unwrap_or_default();
+    if items.is_empty() {
         bail!("invoice has no items");
     }
 
-    let mut items = Vec::with_capacity(invoice.items.len());
-    for (i, item) in invoice.items.iter().enumerate() {
-        let rate = item.rate.or(default_rate).with_context(|| {
-            format!(
-                "item #{}: no rate (set item.rate or client default_rate)",
-                i + 1
-            )
-        })?;
-        if item.quantity.is_sign_negative() {
-            bail!("item #{}: negative quantity", i + 1);
-        }
-        if rate.is_sign_negative() {
-            bail!("item #{}: negative rate", i + 1);
-        }
-        items.push(DomainLineItem {
-            description: item.description.clone(),
-            quantity: item.quantity,
-            rate,
-        });
+    let default_rate = merged.default_rate;
+    let mut resolved_items = Vec::with_capacity(items.len());
+    for (i, item) in items.into_iter().enumerate() {
+        resolved_items.push(resolve_line_item(i, item, default_rate)?);
     }
 
-    let tax_rate = invoice.tax_rate.unwrap_or(config.defaults.tax_rate);
+    let tax_rate = merged.tax_rate.context("tax_rate missing")?;
     if tax_rate.is_sign_negative() {
         bail!("tax_rate is negative");
     }
-    let tax_note = invoice
-        .tax_note
-        .clone()
-        .or_else(|| config.defaults.tax_note.clone());
 
-    let sender_name = invoice
-        .sender_override
-        .name
-        .clone()
-        .unwrap_or_else(|| config.sender.name.clone());
-    let sender_address = invoice
-        .sender_override
-        .address
-        .clone()
-        .or_else(|| config.sender.address.clone())
-        .unwrap_or_default();
-
-    let logo_path: Option<PathBuf> = if let Some(p) = &invoice.sender_override.logo {
-        Some(resolve_relative(invoice_dir, &expand_tilde(p)))
-    } else {
-        config.sender.logo.as_ref().map(|p| expand_tilde(p))
-    };
-
-    Ok(DomainInvoice {
-        number: invoice.number,
-        date: invoice.date,
-        po_number: invoice.po_number,
-        notes: invoice.notes,
+    Ok(InvoiceDocument {
+        number: merged.number.context("invoice number missing")?,
+        date: merged.date.context("invoice date missing")?,
+        client: merged.client,
+        po_number: merged.po_number,
+        notes: merged.notes,
         sender: Party {
-            name: sender_name,
-            address: sender_address,
+            name: merged.sender.name.unwrap_or_default(),
+            address: merged.sender.address.unwrap_or_default(),
         },
         bill_to,
-        ship_to,
-        items,
+        ship_to: merged.ship_to.unwrap_or_default(),
+        items: resolved_items,
         tax_rate,
-        tax_note,
-        currency: config.defaults.currency,
-        locale: config.defaults.locale,
-        date_format: config.defaults.date_format.clone(),
-        logo_path,
+        tax_note: merged.tax_note,
+        currency: merged.currency.context("currency missing")?,
+        locale: merged.locale.context("locale missing")?,
+        date_format: merged.date_format.context("date_format missing")?,
+        logo_path: merged.sender.logo_path,
     })
 }
 
-fn apply_cli_overrides(invoice: &mut InvoiceFile, o: CliOverrides) {
-    if let Some(n) = o.number {
-        invoice.number = n;
+fn resolve_line_item(
+    index: usize,
+    item: LineItemPatch,
+    default_rate: Option<rust_decimal::Decimal>,
+) -> Result<InvoiceLineItem> {
+    let quantity = item
+        .quantity
+        .with_context(|| format!("item #{}: quantity missing", index + 1))?;
+    let rate = item.rate.or(default_rate).with_context(|| {
+        format!(
+            "item #{}: no rate (set item.rate or client default_rate)",
+            index + 1
+        )
+    })?;
+    if quantity.is_sign_negative() {
+        bail!("item #{}: negative quantity", index + 1);
     }
-    if let Some(d) = o.date {
-        invoice.date = d;
+    if rate.is_sign_negative() {
+        bail!("item #{}: negative rate", index + 1);
     }
-    if let Some(p) = o.po {
-        invoice.po_number = Some(p);
+
+    let description = item
+        .description
+        .with_context(|| format!("item #{}: description missing", index + 1))?;
+    if description.is_empty() {
+        bail!("item #{}: description is empty", index + 1);
     }
-    if let Some(c) = o.client {
-        invoice.client = Some(c);
-    }
-    if !o.items.is_empty() {
-        invoice.items = o.items;
-    }
-    if let Some(n) = o.notes {
-        invoice.notes = Some(n);
-    }
-    if let Some(q) = o.first_quantity
-        && let Some(first) = invoice.items.first_mut()
-    {
-        first.quantity = q;
-    }
-    if let Some(r) = o.first_rate
-        && let Some(first) = invoice.items.first_mut()
-    {
-        first.rate = Some(r);
-    }
-    if let Some(d) = o.first_description
-        && let Some(first) = invoice.items.first_mut()
-    {
-        first.description = d;
-    }
-    if let Some(t) = o.tax_rate {
-        invoice.tax_rate = Some(t);
-    }
-    if let Some(t) = o.tax_note {
-        invoice.tax_note = Some(t);
-    }
-    if let Some(b) = o.bill_to {
-        invoice.client_override.bill_to = Some(b);
-    }
-    if let Some(s) = o.ship_to {
-        invoice.client_override.ship_to = Some(s);
-    }
+
+    Ok(InvoiceLineItem {
+        description,
+        quantity,
+        rate,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{ClientTemplate, DefaultsConfig, SenderConfig};
-    use crate::invoice_input::{ClientOverride, LineItemInput, SenderOverride};
+    use crate::config::{AppConfig, ClientTemplate, DefaultsConfig, SenderConfig};
+    use crate::currency::Currency;
+    use crate::domain::{LineItemPatch, PartyPatch};
+    use crate::locale::Locale;
     use jiff::civil::date;
     use rust_decimal_macros::dec;
     use std::collections::BTreeMap;
@@ -233,8 +124,8 @@ mod tests {
                 logo: None,
             },
             defaults: DefaultsConfig {
-                currency: crate::currency::Currency::Eur,
-                locale: crate::locale::Locale::EnUs,
+                currency: Currency::Eur,
+                locale: Locale::EnUs,
                 date_format: "%Y-%m-%d".to_string(),
                 output_dir: PathBuf::from("pdf"),
                 tax_rate: dec!(0),
@@ -244,57 +135,65 @@ mod tests {
         }
     }
 
-    fn base_invoice() -> InvoiceFile {
-        InvoiceFile {
-            number: 1,
-            date: date(2026, 4, 18),
+    fn base_invoice_patch() -> InvoicePatch {
+        InvoicePatch {
+            number: Some(1),
+            date: Some(date(2026, 4, 18)),
             client: Some("acme".to_string()),
-            po_number: None,
-            notes: None,
-            tax_rate: None,
-            tax_note: None,
-            sender_override: SenderOverride::default(),
-            client_override: ClientOverride::default(),
-            items: vec![LineItemInput {
-                description: "work".to_string(),
-                quantity: dec!(2),
+            items: Some(vec![LineItemPatch {
+                description: Some("work".to_string()),
+                quantity: Some(dec!(2)),
                 rate: None,
-            }],
+            }]),
+            ..InvoicePatch::default()
         }
+    }
+
+    fn merge_with_layers(mut layers: Vec<InvoicePatch>) -> Result<InvoiceDocument> {
+        let config = base_config();
+        let selected_client = layers.iter().rev().find_map(|patch| patch.client.clone());
+        let mut all_layers = vec![config.defaults_patch()];
+        if let Some(client) = selected_client.as_deref()
+            && let Some(client_patch) = config.client_patch(client)
+        {
+            all_layers.push(client_patch);
+        }
+        all_layers.append(&mut layers);
+        merge(
+            all_layers,
+            selected_client.as_deref(),
+            &config.client_keys(),
+        )
     }
 
     #[test]
     fn merges_from_template() {
-        let d = merge(
-            base_invoice(),
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap();
+        let d = merge_with_layers(vec![base_invoice_patch()]).unwrap();
         assert_eq!(d.bill_to, "Acme Inc\n1 Main St");
         assert_eq!(d.ship_to, "Acme Dock");
         assert_eq!(d.items[0].rate, dec!(100));
         assert_eq!(d.sender.name, "Me Co");
-        assert_eq!(d.currency, crate::currency::Currency::Eur);
+        assert_eq!(d.currency, Currency::Eur);
     }
 
     #[test]
     fn cli_overrides_win() {
-        let overrides = CliOverrides {
+        let overrides = InvoicePatch {
             number: Some(42),
-            po: Some("PO-9".to_string()),
+            po_number: Some("PO-9".to_string()),
             notes: Some("n".to_string()),
-            first_quantity: Some(dec!(3)),
-            first_rate: Some(dec!(200)),
-            first_description: Some("override".to_string()),
+            first_item: Some(LineItemPatch {
+                description: Some("override".to_string()),
+                quantity: Some(dec!(3)),
+                rate: Some(dec!(200)),
+            }),
             tax_rate: Some(dec!(24)),
             tax_note: Some("tn".to_string()),
             bill_to: Some("Override Ltd".to_string()),
             ship_to: Some("Override Dock".to_string()),
-            ..Default::default()
+            ..InvoicePatch::default()
         };
-        let d = merge(base_invoice(), &base_config(), overrides, Path::new("/tmp")).unwrap();
+        let d = merge_with_layers(vec![base_invoice_patch(), overrides]).unwrap();
         assert_eq!(d.number, 42);
         assert_eq!(d.po_number.as_deref(), Some("PO-9"));
         assert_eq!(d.items[0].description, "override");
@@ -309,119 +208,86 @@ mod tests {
 
     #[test]
     fn unknown_client_with_bill_to_override_ok() {
-        let mut inv = base_invoice();
-        inv.client = Some("unknown".to_string());
-        inv.client_override.bill_to = Some("Ad Hoc".to_string());
-        inv.client_override.default_rate = Some(dec!(50));
-        inv.items[0].rate = None;
-        let d = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap();
+        let mut invoice = base_invoice_patch();
+        invoice.client = Some("unknown".to_string());
+        invoice.bill_to = Some("Ad Hoc".to_string());
+        invoice.default_rate = Some(dec!(50));
+        let d = merge_with_layers(vec![invoice]).unwrap();
         assert_eq!(d.bill_to, "Ad Hoc");
         assert_eq!(d.items[0].rate, dec!(50));
     }
 
     #[test]
     fn missing_bill_to_fails() {
-        let mut inv = base_invoice();
-        inv.client = Some("unknown".to_string());
-        let err = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap_err()
-        .to_string();
+        let mut invoice = base_invoice_patch();
+        invoice.client = Some("unknown".to_string());
+        let err = merge_with_layers(vec![invoice]).unwrap_err().to_string();
         assert!(err.contains("bill_to"), "got: {err}");
     }
 
     #[test]
     fn missing_rate_fails() {
-        let mut cfg = base_config();
-        cfg.clients.get_mut("acme").unwrap().default_rate = None;
-        let inv = base_invoice();
-        let err = merge(inv, &cfg, CliOverrides::default(), Path::new("/tmp"))
-            .unwrap_err()
-            .to_string();
+        let mut invoice = base_invoice_patch();
+        invoice.client = Some("unknown".to_string());
+        invoice.bill_to = Some("Ad Hoc".to_string());
+        let err = merge_with_layers(vec![invoice]).unwrap_err().to_string();
         assert!(err.contains("no rate"), "got: {err}");
     }
 
     #[test]
     fn no_items_fails() {
-        let mut inv = base_invoice();
-        inv.items.clear();
-        let err = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap_err()
-        .to_string();
+        let mut invoice = base_invoice_patch();
+        invoice.items = Some(Vec::new());
+        let err = merge_with_layers(vec![invoice]).unwrap_err().to_string();
         assert!(err.contains("no items"), "got: {err}");
     }
 
     #[test]
     fn negative_quantity_fails() {
-        let mut inv = base_invoice();
-        inv.items[0].quantity = dec!(-1);
-        let err = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap_err()
-        .to_string();
+        let mut invoice = base_invoice_patch();
+        invoice.items = Some(vec![LineItemPatch {
+            description: Some("work".to_string()),
+            quantity: Some(dec!(-1)),
+            rate: Some(dec!(100)),
+        }]);
+        let err = merge_with_layers(vec![invoice]).unwrap_err().to_string();
         assert!(err.contains("negative quantity"), "got: {err}");
     }
 
     #[test]
     fn negative_tax_rate_fails() {
-        let mut inv = base_invoice();
-        inv.tax_rate = Some(dec!(-5));
-        let err = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap_err()
-        .to_string();
+        let mut invoice = base_invoice_patch();
+        invoice.tax_rate = Some(dec!(-5));
+        let err = merge_with_layers(vec![invoice]).unwrap_err().to_string();
         assert!(err.contains("tax_rate"), "got: {err}");
     }
 
     #[test]
     fn sender_override_partial() {
-        let mut inv = base_invoice();
-        inv.sender_override.name = Some("Other".to_string());
-        let d = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/tmp"),
-        )
-        .unwrap();
+        let invoice = InvoicePatch {
+            sender: PartyPatch {
+                name: Some("Other".to_string()),
+                address: None,
+                logo_path: None,
+            },
+            ..base_invoice_patch()
+        };
+        let d = merge_with_layers(vec![invoice]).unwrap();
         assert_eq!(d.sender.name, "Other");
         assert_eq!(d.sender.address, "Home 1");
     }
 
     #[test]
-    fn logo_from_invoice_is_relative_to_invoice_dir() {
-        let mut inv = base_invoice();
-        inv.sender_override.logo = Some(PathBuf::from("logo.svg"));
-        let d = merge(
-            inv,
-            &base_config(),
-            CliOverrides::default(),
-            Path::new("/inv/dir"),
-        )
-        .unwrap();
+    fn logo_from_invoice_patch_wins() {
+        let invoice = InvoicePatch {
+            sender: PartyPatch {
+                name: None,
+                address: None,
+                logo_path: Some(PathBuf::from("/inv/dir/logo.svg")),
+            },
+            ..base_invoice_patch()
+        };
+        let d = merge_with_layers(vec![invoice]).unwrap();
         assert_eq!(d.logo_path, Some(PathBuf::from("/inv/dir/logo.svg")));
     }
 }
