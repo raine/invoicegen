@@ -20,8 +20,8 @@ defaults:
 
 clients:
   example-client:
-    bill_to: "Example Client Inc."
-    ship_to: |
+    bill_to: |
+      Example Client Inc.
       123 Example St
       City, State 12345
       Country
