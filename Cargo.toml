@@ -1,6 +1,6 @@
 [package]
 name = "invoicegen"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Render invoices from YAML to PDF using Typst."
 readme = "README.md"

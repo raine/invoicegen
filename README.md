@@ -5,9 +5,9 @@
 </p>
 
 `invoicegen` is a CLI that renders invoices from YAML to PDF. Write the invoice
-as a small YAML file, and get a clean, paginated PDF rendered by
-[Typst](https://typst.app) with embedded fonts, with no system dependencies and
-no LaTeX, no headless browser.
+as a small YAML file, and get a clean PDF rendered by [Typst](https://typst.app)
+with embedded fonts, with no system dependencies and no LaTeX, no headless
+browser.
 
 Designed for solo contractors and small consultancies who want invoices under
 version control and out of spreadsheet tools.
