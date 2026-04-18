@@ -134,11 +134,10 @@ The global config lives at `$XDG_CONFIG_HOME/invoice/config.yaml` (default
 
 ```yaml
 sender:
-  name: 'Your Company Oy'
+  name: 'Your Company Ltd.'
   address: |
-    Street 1
-    00100 Helsinki
-    Finland
+    123 Main Street
+    City, Country
   logo: ~/.config/invoice/logo.svg # optional; SVG, PNG, or JPEG
 
 defaults:
@@ -199,9 +198,10 @@ tax_rate: 24 # optional, overrides defaults.tax_rate
 tax_note: 'Reverse charge' # optional, overrides defaults.tax_note
 
 sender_override: # optional; overrides global sender for this invoice
-  name: 'Raine Virta'
+  name: 'Your Company Ltd.'
   address: |
-    Helsinki, Finland
+    123 Main Street
+    City, Country
   logo: ./logo.svg # resolved relative to the YAML file
 
 client_override: # optional; overrides the matched client template
