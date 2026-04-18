@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use jiff::civil::Date;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, path::PathBuf};
+use std::{fs, io::Read, path::Path, path::PathBuf};
 
 use crate::domain::{InvoicePatch, LineItemPatch, PartyPatch};
 use crate::paths::resolve_relative;
@@ -93,12 +93,28 @@ impl std::str::FromStr for LineItemInput {
 }
 
 pub fn load(path: &Path) -> Result<InvoiceFile> {
-    let text = fs::read_to_string(path)
-        .with_context(|| format!("reading invoice file {}", path.display()))?;
+    let text = if path == Path::new("-") {
+        let mut text = String::new();
+        std::io::stdin()
+            .read_to_string(&mut text)
+            .context("reading invoice YAML from stdin")?;
+        text
+    } else {
+        fs::read_to_string(path)
+            .with_context(|| format!("reading invoice file {}", path.display()))?
+    };
     let de = serde_yml::Deserializer::from_str(&text);
     let inv: InvoiceFile = serde_path_to_error::deserialize(de)
-        .with_context(|| format!("parsing invoice {}", path.display()))?;
+        .with_context(|| format!("parsing invoice {}", display_path(path)))?;
     Ok(inv)
+}
+
+fn display_path(path: &Path) -> String {
+    if path == Path::new("-") {
+        "stdin".to_string()
+    } else {
+        path.display().to_string()
+    }
 }
 
 impl InvoiceFile {
