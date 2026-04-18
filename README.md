@@ -90,10 +90,10 @@ items:
 
 ```sh
 invoice generate invoices/2026-04.yaml
-# → Wrote invoices/invoice-17.pdf
+# → Wrote invoices/2026-04.pdf
 ```
 
-When `-o` is omitted, output goes to `invoice-<number>.pdf` beside the invoice
+When `-o` is omitted, output goes to `<input-filename>.pdf` beside the invoice
 file. If `defaults.output_dir` is set in config, that directory is used instead.
 
 ### Stdin mode
@@ -105,7 +105,8 @@ cat invoices/2026-04.yaml | invoice generate -
 ```
 
 When reading from stdin, relative paths in the invoice YAML and the default
-output directory resolve from the current working directory.
+output directory resolve from the current working directory. In stdin mode, the
+fallback output filename remains `invoice-<number>.pdf`.
 
 ## Configuration
 
@@ -234,7 +235,7 @@ Arguments:
 
 Options:
   -o, --output <OUTPUT>  Output PDF path
-                         (default: invoice-<number>.pdf beside the invoice file)
+                         (default: <input-filename>.pdf beside the invoice file)
 ```
 
 ## Development

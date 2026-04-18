@@ -37,7 +37,7 @@ pub fn run(args: GenerateArgs) -> Result<()> {
         None => (None, None),
     };
 
-    let output_path = resolve_output_path(&args.output, &config, &dir, invoice.number);
+    let output_path = resolve_output_path(&args.output, &config, &args.file, &dir, invoice.number);
 
     let pdf = render_pdf(&render_ctx, logo_bytes, logo_virtual_name)?;
 
@@ -64,14 +64,49 @@ fn invoice_base_dir(invoice_file: &Path) -> Result<PathBuf> {
 fn resolve_output_path(
     cli_output: &Option<PathBuf>,
     config: &AppConfig,
+    invoice_file: &Path,
     invoice_dir: &Path,
     number: u32,
 ) -> PathBuf {
     match cli_output {
         Some(p) => p.clone(),
         None => match &config.defaults.output_dir {
-            Some(dir) => resolve_relative(invoice_dir, dir).join(format!("invoice-{number}.pdf")),
-            None => invoice_dir.join(format!("invoice-{number}.pdf")),
+            Some(dir) => {
+                resolve_relative(invoice_dir, dir).join(default_output_name(invoice_file, number))
+            }
+            None => invoice_dir.join(default_output_name(invoice_file, number)),
         },
+    }
+}
+
+fn default_output_name(invoice_file: &Path, number: u32) -> String {
+    if invoice_file == Path::new("-") {
+        return format!("invoice-{number}.pdf");
+    }
+
+    invoice_file
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .filter(|stem| !stem.is_empty())
+        .map(|stem| format!("{stem}.pdf"))
+        .unwrap_or_else(|| format!("invoice-{number}.pdf"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::default_output_name;
+    use std::path::Path;
+
+    #[test]
+    fn output_name_uses_invoice_basename() {
+        assert_eq!(
+            default_output_name(Path::new("/tmp/2026-02_INV-017.yaml"), 17),
+            "2026-02_INV-017.pdf"
+        );
+    }
+
+    #[test]
+    fn stdin_falls_back_to_invoice_number() {
+        assert_eq!(default_output_name(Path::new("-"), 17), "invoice-17.pdf");
     }
 }
