@@ -66,7 +66,7 @@ pub struct GenerateArgs {
 
     /// First item quantity
     #[arg(long)]
-    pub hours: Option<Decimal>,
+    pub quantity: Option<Decimal>,
 
     /// First item rate
     #[arg(long)]

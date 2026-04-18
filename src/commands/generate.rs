@@ -52,8 +52,8 @@ fn build_from_args(args: &GenerateArgs) -> Result<InvoiceFile> {
         .clone()
         .context("--description is required without an input file")?;
     let quantity = args
-        .hours
-        .context("--hours is required without an input file")?;
+        .quantity
+        .context("--quantity is required without an input file")?;
 
     if description.is_empty() {
         bail!("--description is empty");
