@@ -1,5 +1,9 @@
 # invoicegen
 
+<p align="center">
+  <img src="meta/demo.png" alt="Rendered invoice PDF preview" width="720" />
+</p>
+
 `invoicegen` is a CLI that renders invoices from YAML to PDF. Write the invoice
 as a small YAML file, and get a clean, paginated PDF rendered by
 [Typst](https://typst.app) with embedded fonts, with no system dependencies and
@@ -58,33 +62,39 @@ This example is fully self-contained and does not require any global config.
 ### 1. Write an invoice YAML
 
 ```yaml
-# invoices/2026-04.yaml
+# examples/demo.yaml
 number: 17
 date: 2026-04-18
 sender:
-  name: 'Your Company Ltd.'
+  name: 'Meridian Studio Ltd.'
   address: |
-    123 Main Street
-    City, Country
+    18 Foundry Lane
+    Helsinki 00140
+    Finland
 client:
   bill_to: |
-    Northwind Labs
-    42 Example Avenue
-    Helsinki 00100
-    Finland
-  default_rate: 100.00
-po_number: 'PO-2026-04-DEMO'
-notes: 'Demo invoice for April'
+    Brightleaf Systems
+  ship_to: |
+    Accounts Payable
+    Brightleaf Systems
+    88 Market Square
+    Dublin D02
+    Ireland
+  default_rate: 95.00
+po_number: 'BLS-APR-2026-17'
+notes: 'Retainer for April platform support'
+tax_rate: 0
+tax_note: 'VAT 0% for demonstration purposes only'
 items:
-  - description: 'Monthly development support'
-    quantity: 12
+  - description: 'Product platform engineering support and delivery consulting'
+    quantity: 160
 ```
 
 ### 2. Generate the PDF
 
 ```sh
-invoicegen generate invoices/2026-04.yaml
-# → Wrote invoices/2026-04.pdf
+invoicegen generate examples/demo.yaml
+# → Wrote examples/demo.pdf
 ```
 
 When `-o` is omitted, output goes to `<input-filename>.pdf` beside the invoice

@@ -1,0 +1,25 @@
+number: 1
+date: 2026-04-18
+sender:
+  name: 'Meridian Studio Ltd.'
+  address: |
+    18 Foundry Lane
+    Helsinki 00140
+    Finland
+client:
+  bill_to: |
+    Brightleaf Systems
+  ship_to: |
+    Accounts Payable
+    Brightleaf Systems
+    88 Market Square
+    Dublin D02
+    Ireland
+  default_rate: 100.00
+po_number: 'BLS-APR-2026-17'
+notes: 'Retainer for April platform support'
+tax_rate: 0
+tax_note: 'VAT 0% for demonstration purposes only'
+items:
+  - description: 'Product platform engineering support and delivery consulting'
+    quantity: 160
