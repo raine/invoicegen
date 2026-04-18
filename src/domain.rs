@@ -163,8 +163,7 @@ pub struct CalculatedLineItem {
 }
 
 #[derive(Debug, Clone)]
-pub struct CalculatedInvoice {
-    pub invoice: InvoiceDocument,
+pub struct InvoiceTotals {
     pub items: Vec<CalculatedLineItem>,
     pub subtotal: Decimal,
     pub tax: Decimal,

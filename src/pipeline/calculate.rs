@@ -1,8 +1,8 @@
 use rust_decimal::Decimal;
 
-use crate::domain::{CalculatedInvoice, CalculatedLineItem, InvoiceDocument};
+use crate::domain::{CalculatedLineItem, InvoiceDocument, InvoiceTotals};
 
-pub fn calculate(invoice: InvoiceDocument) -> CalculatedInvoice {
+pub fn calculate(invoice: &InvoiceDocument) -> InvoiceTotals {
     let minor = invoice.currency.minor_unit();
     let mut items = Vec::with_capacity(invoice.items.len());
     let mut subtotal = Decimal::ZERO;
@@ -19,8 +19,7 @@ pub fn calculate(invoice: InvoiceDocument) -> CalculatedInvoice {
     let tax = (subtotal * invoice.tax_rate / Decimal::from(100)).round_dp(minor);
     let total = subtotal + tax;
 
-    CalculatedInvoice {
-        invoice,
+    InvoiceTotals {
         items,
         subtotal,
         tax,
@@ -70,7 +69,8 @@ mod tests {
 
     #[test]
     fn single_line_totals() {
-        let c = calculate(inv(vec![item(dec!(2), dec!(100))], dec!(0)));
+        let invoice = inv(vec![item(dec!(2), dec!(100))], dec!(0));
+        let c = calculate(&invoice);
         assert_eq!(c.items[0].amount, dec!(200.00));
         assert_eq!(c.subtotal, dec!(200.00));
         assert_eq!(c.tax, dec!(0.00));
@@ -79,7 +79,8 @@ mod tests {
 
     #[test]
     fn tax_rounding() {
-        let c = calculate(inv(vec![item(dec!(1), dec!(100))], dec!(24)));
+        let invoice = inv(vec![item(dec!(1), dec!(100))], dec!(24));
+        let c = calculate(&invoice);
         assert_eq!(c.subtotal, dec!(100.00));
         assert_eq!(c.tax, dec!(24.00));
         assert_eq!(c.total, dec!(124.00));
@@ -88,10 +89,11 @@ mod tests {
     #[test]
     fn rounds_per_line_before_summing() {
         // 0.333 * 3 = 0.999 -> rounds to 1.00; two such lines -> 2.00
-        let c = calculate(inv(
+        let invoice = inv(
             vec![item(dec!(0.333), dec!(3)), item(dec!(0.333), dec!(3))],
             dec!(0),
-        ));
+        );
+        let c = calculate(&invoice);
         assert_eq!(c.items[0].amount, dec!(1.00));
         assert_eq!(c.subtotal, dec!(2.00));
     }
@@ -99,7 +101,8 @@ mod tests {
     #[test]
     fn fractional_tax() {
         // subtotal 100, tax 7.5% = 7.50
-        let c = calculate(inv(vec![item(dec!(1), dec!(100))], dec!(7.5)));
+        let invoice = inv(vec![item(dec!(1), dec!(100))], dec!(7.5));
+        let c = calculate(&invoice);
         assert_eq!(c.tax, dec!(7.50));
         assert_eq!(c.total, dec!(107.50));
     }

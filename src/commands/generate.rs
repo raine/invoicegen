@@ -40,10 +40,10 @@ pub fn run(args: GenerateArgs) -> Result<()> {
     layers.push(cli_patch);
 
     let invoice = merge(layers, selected_client.as_deref(), &config.client_keys())?;
-    let calc = calculate(invoice);
-    let render_ctx = present(&calc)?;
+    let totals = calculate(&invoice);
+    let render_ctx = present(&invoice, &totals)?;
 
-    let (logo_bytes, logo_virtual_name) = match &calc.invoice.logo_path {
+    let (logo_bytes, logo_virtual_name) = match &invoice.logo_path {
         Some(path) => {
             let bytes =
                 fs::read(path).with_context(|| format!("reading logo {}", path.display()))?;
@@ -52,7 +52,7 @@ pub fn run(args: GenerateArgs) -> Result<()> {
         None => (None, None),
     };
 
-    let output_path = resolve_output_path(&args.output, &config, &dir, calc.invoice.number);
+    let output_path = resolve_output_path(&args.output, &config, &dir, invoice.number);
 
     let pdf = render_pdf(&render_ctx, logo_bytes, logo_virtual_name)?;
 
