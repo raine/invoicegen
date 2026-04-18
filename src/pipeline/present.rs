@@ -2,19 +2,19 @@ use anyhow::{Context, Result};
 use jiff::fmt::strtime;
 use rust_decimal::Decimal;
 
-use crate::domain::CalculatedInvoice;
+use crate::domain::{InvoiceDocument, InvoiceTotals};
 use crate::invoice::{RenderContext, RenderLineItem, RenderParty};
 use crate::money::{format_money, format_quantity};
 
-pub fn present(calc: &CalculatedInvoice) -> Result<RenderContext> {
-    let currency = calc.invoice.currency;
-    let locale = calc.invoice.locale;
+pub fn present(invoice: &InvoiceDocument, totals: &InvoiceTotals) -> Result<RenderContext> {
+    let currency = invoice.currency;
+    let locale = invoice.locale;
     let fmt = |d: Decimal| format_money(d, currency, locale);
 
-    let date_display = strtime::format(&calc.invoice.date_format, calc.invoice.date)
-        .with_context(|| format!("formatting date with '{}'", calc.invoice.date_format))?;
+    let date_display = strtime::format(&invoice.date_format, invoice.date)
+        .with_context(|| format!("formatting date with '{}'", invoice.date_format))?;
 
-    let items = calc
+    let items = totals
         .items
         .iter()
         .map(|item| RenderLineItem {
@@ -25,13 +25,13 @@ pub fn present(calc: &CalculatedInvoice) -> Result<RenderContext> {
         })
         .collect();
 
-    let tax_label = if calc.invoice.tax_rate.is_zero() {
+    let tax_label = if invoice.tax_rate.is_zero() {
         "Tax".to_string()
     } else {
-        format!("Tax ({}%)", calc.invoice.tax_rate.normalize())
+        format!("Tax ({}%)", invoice.tax_rate.normalize())
     };
 
-    let logo_virtual_path = calc.invoice.logo_path.as_ref().map(|p| {
+    let logo_virtual_path = invoice.logo_path.as_ref().map(|p| {
         let ext = p
             .extension()
             .and_then(|e| e.to_str())
@@ -41,24 +41,24 @@ pub fn present(calc: &CalculatedInvoice) -> Result<RenderContext> {
     });
 
     Ok(RenderContext {
-        number: calc.invoice.number.to_string(),
+        number: invoice.number.to_string(),
         date_display,
-        po_number: calc.invoice.po_number.clone().unwrap_or_default(),
-        balance_due_display: fmt(calc.total),
+        po_number: invoice.po_number.clone().unwrap_or_default(),
+        balance_due_display: fmt(totals.total),
         tax_label,
-        tax_note: calc.invoice.tax_note.clone(),
+        tax_note: invoice.tax_note.clone(),
         logo_path: logo_virtual_path,
         sender: RenderParty {
-            name: calc.invoice.sender.name.clone(),
-            address_lines: split_lines(&calc.invoice.sender.address),
+            name: invoice.sender.name.clone(),
+            address_lines: split_lines(&invoice.sender.address),
         },
-        bill_to_lines: split_lines(&calc.invoice.bill_to),
-        ship_to_lines: split_lines(&calc.invoice.ship_to),
-        notes_lines: split_lines(calc.invoice.notes.as_deref().unwrap_or("")),
+        bill_to_lines: split_lines(&invoice.bill_to),
+        ship_to_lines: split_lines(&invoice.ship_to),
+        notes_lines: split_lines(invoice.notes.as_deref().unwrap_or("")),
         items,
-        subtotal_display: fmt(calc.subtotal),
-        tax_display: fmt(calc.tax),
-        total_display: fmt(calc.total),
+        subtotal_display: fmt(totals.subtotal),
+        tax_display: fmt(totals.tax),
+        total_display: fmt(totals.total),
     })
 }
 
@@ -73,15 +73,15 @@ fn split_lines(s: &str) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::currency::Currency;
-    use crate::domain::{CalculatedLineItem, InvoiceDocument, Party};
+    use crate::domain::{CalculatedLineItem, InvoiceDocument, InvoiceTotals, Party};
     use crate::locale::Locale;
     use jiff::civil::date;
     use rust_decimal_macros::dec;
     use std::path::PathBuf;
 
-    fn base() -> CalculatedInvoice {
-        CalculatedInvoice {
-            invoice: InvoiceDocument {
+    fn base() -> (InvoiceDocument, InvoiceTotals) {
+        (
+            InvoiceDocument {
                 number: 7,
                 date: date(2026, 4, 18),
                 client: None,
@@ -101,21 +101,24 @@ mod tests {
                 date_format: "%Y-%m-%d".into(),
                 logo_path: None,
             },
-            items: vec![CalculatedLineItem {
-                description: "work".into(),
-                quantity: dec!(2),
-                rate: dec!(100),
-                amount: dec!(200),
-            }],
-            subtotal: dec!(200),
-            tax: dec!(0),
-            total: dec!(200),
-        }
+            InvoiceTotals {
+                items: vec![CalculatedLineItem {
+                    description: "work".into(),
+                    quantity: dec!(2),
+                    rate: dec!(100),
+                    amount: dec!(200),
+                }],
+                subtotal: dec!(200),
+                tax: dec!(0),
+                total: dec!(200),
+            },
+        )
     }
 
     #[test]
     fn formats_eur() {
-        let r = present(&base()).unwrap();
+        let (invoice, totals) = base();
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.total_display, "€200.00");
         assert_eq!(r.subtotal_display, "€200.00");
         assert_eq!(r.items[0].rate_display, "€100.00");
@@ -123,41 +126,43 @@ mod tests {
 
     #[test]
     fn formats_fi_fi_suffix() {
-        let mut c = base();
-        c.invoice.locale = Locale::FiFi;
-        let r = present(&c).unwrap();
+        let (mut invoice, totals) = base();
+        invoice.locale = Locale::FiFi;
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.total_display, "200,00\u{00A0}€");
     }
 
     #[test]
     fn jpy_has_no_decimals() {
-        let mut c = base();
-        c.invoice.currency = Currency::Jpy;
-        c.invoice.locale = Locale::JaJp;
-        c.total = dec!(1234.56);
-        let r = present(&c).unwrap();
+        let (mut invoice, mut totals) = base();
+        invoice.currency = Currency::Jpy;
+        invoice.locale = Locale::JaJp;
+        totals.total = dec!(1234.56);
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.total_display, "¥1,235");
     }
 
     #[test]
     fn tax_label_zero_vs_nonzero() {
-        let mut c = base();
-        assert_eq!(present(&c).unwrap().tax_label, "Tax");
-        c.invoice.tax_rate = dec!(24);
-        assert_eq!(present(&c).unwrap().tax_label, "Tax (24%)");
-        c.invoice.tax_rate = dec!(7.5);
-        assert_eq!(present(&c).unwrap().tax_label, "Tax (7.5%)");
+        let (mut invoice, totals) = base();
+        assert_eq!(present(&invoice, &totals).unwrap().tax_label, "Tax");
+        invoice.tax_rate = dec!(24);
+        assert_eq!(present(&invoice, &totals).unwrap().tax_label, "Tax (24%)");
+        invoice.tax_rate = dec!(7.5);
+        assert_eq!(present(&invoice, &totals).unwrap().tax_label, "Tax (7.5%)");
     }
 
     #[test]
     fn date_formatting() {
-        let r = present(&base()).unwrap();
+        let (invoice, totals) = base();
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.date_display, "2026-04-18");
     }
 
     #[test]
     fn multiline_splitting_drops_blanks() {
-        let r = present(&base()).unwrap();
+        let (invoice, totals) = base();
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.sender.address_lines, vec!["1 Home", "City"]);
         assert_eq!(r.bill_to_lines, vec!["Acme", "1 Main"]);
         assert!(r.ship_to_lines.is_empty());
@@ -166,15 +171,16 @@ mod tests {
 
     #[test]
     fn logo_virtual_path_from_extension() {
-        let mut c = base();
-        c.invoice.logo_path = Some(PathBuf::from("/x/y/brand.PNG"));
-        let r = present(&c).unwrap();
+        let (mut invoice, totals) = base();
+        invoice.logo_path = Some(PathBuf::from("/x/y/brand.PNG"));
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.logo_path.as_deref(), Some("/logo.png"));
     }
 
     #[test]
     fn logo_virtual_path_none_when_no_logo() {
-        let r = present(&base()).unwrap();
+        let (invoice, totals) = base();
+        let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.logo_path, None);
     }
 }
