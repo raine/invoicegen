@@ -25,7 +25,7 @@ pub enum Command {
     /// Scaffold a starter config at ~/.config/invoice/config.yaml
     Init(InitArgs),
     /// Render an invoice YAML file to PDF
-    Generate(GenerateArgs),
+    Generate(Box<GenerateArgs>),
 }
 
 #[derive(Parser)]
@@ -37,36 +37,56 @@ pub struct InitArgs {
 
 #[derive(Parser)]
 pub struct GenerateArgs {
-    /// Path to the invoice YAML file
-    pub file: PathBuf,
+    /// Path to the invoice YAML file. Omit to build the invoice entirely from CLI flags.
+    pub file: Option<PathBuf>,
 
-    /// Override invoice number
+    /// Invoice number
     #[arg(long)]
     pub number: Option<u32>,
 
-    /// Override invoice date (YYYY-MM-DD)
+    /// Invoice date (YYYY-MM-DD)
     #[arg(long)]
     pub date: Option<Date>,
 
-    /// Override PO number
+    /// PO number
     #[arg(long)]
     pub po: Option<String>,
 
-    /// Override client template key
+    /// Client template key
     #[arg(long)]
     pub client: Option<String>,
 
-    /// Override notes
+    /// Notes
     #[arg(long)]
     pub notes: Option<String>,
 
-    /// Shortcut: override first item quantity
+    /// First item description
+    #[arg(long)]
+    pub description: Option<String>,
+
+    /// First item quantity
     #[arg(long)]
     pub hours: Option<Decimal>,
 
-    /// Shortcut: override first item rate
+    /// First item rate
     #[arg(long)]
     pub rate: Option<Decimal>,
+
+    /// Tax rate in percent (e.g. 24)
+    #[arg(long)]
+    pub tax_rate: Option<Decimal>,
+
+    /// Tax note printed below totals
+    #[arg(long)]
+    pub tax_note: Option<String>,
+
+    /// Override client bill_to (multi-line supported)
+    #[arg(long)]
+    pub bill_to: Option<String>,
+
+    /// Override client ship_to (multi-line supported)
+    #[arg(long)]
+    pub ship_to: Option<String>,
 
     /// Output PDF path (default: <output_dir>/invoice-<number>.pdf)
     #[arg(long, short)]
