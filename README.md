@@ -14,16 +14,16 @@ version control and out of spreadsheet tools.
 ## Features
 
 - **YAML invoices** — version-controlled, diffable, easy to template per month
-- **CLI-only mode** — generate one-off invoices without a YAML file, purely
-  from flags
+- **CLI-only mode** — generate one-off invoices without a YAML file, purely from
+  flags
 - **Global config with client templates** — store sender info and per-client
   bill_to/ship_to/default rates once, reuse across invoices
-- **Self-contained invoices** — YAML can carry its own sender, client, logo,
-  and tax info; the global config is entirely optional
-- **Embedded Typst template and fonts** — single binary, no system font or
-  LaTeX install required
-- **Decimal-accurate money** — `rust_decimal` for subtotals, tax, and totals
-  (no floating-point surprises)
+- **Self-contained invoices** — YAML can carry its own sender, client, logo, and
+  tax info; the global config is entirely optional
+- **Embedded Typst template and fonts** — single binary, no system font or LaTeX
+  install required
+- **Decimal-accurate money** — `rust_decimal` for subtotals, tax, and totals (no
+  floating-point surprises)
 - **XDG-compliant** — honors `$XDG_CONFIG_HOME`, default
   `~/.config/invoice/config.yaml`
 
@@ -43,8 +43,8 @@ cd invoice
 cargo install --path .
 ```
 
-The tool is a single binary with the Typst template and Inter fonts embedded,
-so the installed binary is self-contained.
+The tool is a single binary with the Typst template and Inter fonts embedded, so
+the installed binary is self-contained.
 
 ## Usage
 
@@ -68,10 +68,10 @@ defaults, and you can put everything in the invoice YAML instead.
 number: 17
 date: 2026-04-18
 client: example-client
-po_number: "001-015275"
-notes: "4/2026"
+po_number: '001-015275'
+notes: '4/2026'
 items:
-  - description: "Snr Software Developer — April 2026"
+  - description: 'Consulting'
     quantity: 146
     rate: 100.00
 ```
@@ -95,7 +95,7 @@ invoice generate \
   --number 42 \
   --date 2026-04-18 \
   --client example-client \
-  --description "Consulting — sprint 14" \
+  --description "Consulting" \
   --quantity 10 \
   --rate 150 \
   -o /tmp/invoice-42.pdf
@@ -117,9 +117,9 @@ invoice generate \
 
 ### Overrides
 
-Any CLI flag overrides the corresponding YAML field, which overrides the
-client template, which overrides defaults. For example, to bump the quantity
-on a recurring monthly invoice:
+Any CLI flag overrides the corresponding YAML field, which overrides the client
+template, which overrides defaults. For example, to bump the quantity on a
+recurring monthly invoice:
 
 ```sh
 invoice generate invoices/2026-04.yaml --quantity 152
@@ -134,19 +134,19 @@ The global config lives at `$XDG_CONFIG_HOME/invoice/config.yaml` (default
 
 ```yaml
 sender:
-  name: "Your Company Oy"
+  name: 'Your Company Oy'
   address: |
     Street 1
     00100 Helsinki
     Finland
-  logo: ~/.config/invoice/logo.svg   # optional; SVG, PNG, or JPEG
+  logo: ~/.config/invoice/logo.svg # optional; SVG, PNG, or JPEG
 
 defaults:
   currency: EUR
-  date_format: "%b %-d, %Y"
+  date_format: '%b %-d, %Y'
   output_dir: ./pdf
   tax_rate: 0
-  tax_note: "VAT 0%, Export of goods or services"
+  tax_note: 'VAT 0%, Export of goods or services'
 
 clients:
   example-client:
@@ -165,8 +165,8 @@ clients:
 
 - `name` (string): company or individual name
 - `address` (multi-line string, optional): printed under the sender name
-- `logo` (path, optional): path to an SVG/PNG/JPEG; `~` is expanded. Rendered
-  in the header of every invoice.
+- `logo` (path, optional): path to an SVG/PNG/JPEG; `~` is expanded. Rendered in
+  the header of every invoice.
 
 #### `defaults`
 
@@ -189,22 +189,22 @@ A map of client keys to templates. Each template has:
 ## Invoice YAML
 
 ```yaml
-number: 17                        # required, integer
-date: 2026-04-18                  # required, YYYY-MM-DD
-client: example-client            # client template key (optional if bill_to is overridden)
-po_number: "001-015275"           # optional
-notes: |                          # optional, printed below the item table
+number: 17 # required, integer
+date: 2026-04-18 # required, YYYY-MM-DD
+client: example-client # client template key (optional if bill_to is overridden)
+po_number: '001-015275' # optional
+notes: | # optional, printed below the item table
   Thanks for the work this month.
-tax_rate: 24                      # optional, overrides defaults.tax_rate
-tax_note: "Reverse charge"        # optional, overrides defaults.tax_note
+tax_rate: 24 # optional, overrides defaults.tax_rate
+tax_note: 'Reverse charge' # optional, overrides defaults.tax_note
 
-sender_override:                  # optional; overrides global sender for this invoice
-  name: "Raine Virta"
+sender_override: # optional; overrides global sender for this invoice
+  name: 'Raine Virta'
   address: |
     Helsinki, Finland
-  logo: ./logo.svg                # resolved relative to the YAML file
+  logo: ./logo.svg # resolved relative to the YAML file
 
-client_override:                  # optional; overrides the matched client template
+client_override: # optional; overrides the matched client template
   bill_to: |
     One-off client
     Some address
@@ -212,18 +212,18 @@ client_override:                  # optional; overrides the matched client templ
     ...
   default_rate: 150
 
-items:                            # required, at least one
-  - description: "Consulting"
+items: # required, at least one
+  - description: 'Consulting'
     quantity: 10
-    rate: 150.00                  # optional; falls back to client default_rate
-  - description: "Extra review"
+    rate: 150.00 # optional; falls back to client default_rate
+  - description: 'Extra review'
     quantity: 2
     rate: 200.00
 ```
 
 The `sender_override` block makes invoices **portable**: a YAML + `logo.svg`
-pair travels together (the logo path is resolved relative to the YAML file),
-and the invoice renders identically on a machine with no global config.
+pair travels together (the logo path is resolved relative to the YAML file), and
+the invoice renders identically on a machine with no global config.
 
 ## CLI reference
 
@@ -263,9 +263,8 @@ Options:
                                    (default: <output_dir>/invoice-<number>.pdf)
 ```
 
-When invoked without `[FILE]`, the following flags are required:
-`--number`, `--date`, `--description`, `--quantity`, and either `--client` or
-`--bill-to`.
+When invoked without `[FILE]`, the following flags are required: `--number`,
+`--date`, `--description`, `--quantity`, and either `--client` or `--bill-to`.
 
 ## Development
 
@@ -276,8 +275,8 @@ just run -- generate examples/2026-04.yaml
 
 ## Related projects
 
-- [workmux](https://github.com/raine/workmux) — Git worktrees + tmux windows
-  for parallel AI agent workflows
+- [workmux](https://github.com/raine/workmux) — Git worktrees + tmux windows for
+  parallel AI agent workflows
 - [claude-history](https://github.com/raine/claude-history) — Search and view
   Claude Code conversation history with fzf
 - [git-surgeon](https://github.com/raine/git-surgeon) — Non-interactive
