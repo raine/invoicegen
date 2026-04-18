@@ -54,8 +54,8 @@ pub struct ClientTemplate {
 }
 
 pub fn default_config_path() -> Result<PathBuf> {
-    let dir = dirs::config_dir().context("could not determine config dir")?;
-    Ok(dir.join("invoice").join("config.yaml"))
+    let home = dirs::home_dir().context("could not determine home dir")?;
+    Ok(home.join(".config").join("invoice").join("config.yaml"))
 }
 
 pub fn load(path: &Path) -> Result<AppConfig> {
