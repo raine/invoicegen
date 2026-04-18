@@ -1,9 +1,9 @@
 # invoicegen
 
-`invoicegen` is a CLI that renders invoices from YAML to PDF. Write the invoice as
-a small YAML file, and get a clean, paginated PDF rendered by
-[Typst](https://typst.app) with embedded fonts — no system dependencies, no
-LaTeX, no headless browser.
+`invoicegen` is a CLI that renders invoices from YAML to PDF. Write the invoice
+as a small YAML file, and get a clean, paginated PDF rendered by
+[Typst](https://typst.app) with embedded fonts, with no system dependencies and
+no LaTeX, no headless browser.
 
 Designed for solo contractors and small consultancies who want invoices under
 version control and out of spreadsheet tools.
@@ -13,17 +13,18 @@ version control and out of spreadsheet tools.
 
 ## Features
 
-- **YAML invoices** — version-controlled, diffable, easy to template per month
-- **Global config with client templates** — store sender info and per-client
-  bill_to/ship_to/default rates once, reuse across invoices
-- **Self-contained invoices** — YAML can carry its own sender, client, logo, and
-  tax info; the global config is entirely optional
-- **Embedded Typst template and fonts** — single binary, no system font or LaTeX
-  install required
-- **Decimal-accurate money** — `rust_decimal` for subtotals, tax, and totals (no
-  floating-point surprises)
-- **XDG-compliant** — honors `$XDG_CONFIG_HOME`, default
-  `~/.config/invoicegen/config.yaml`
+- **YAML-first invoices**: keep invoices as small, diffable text files instead
+  of spreadsheets, with a structure that works well in version control
+- **Reusable config and invoice-local overrides**: define sender details,
+  defaults, and client templates once, then override them per invoice when
+  needed for one-off billing cases
+- **Self-contained PDF rendering**: single binary with embedded Typst template
+  and fonts, with no LaTeX, browser, or system font setup required
+- **Accurate money and tax handling**: `rust_decimal`-based totals plus
+  locale-aware currency formatting for predictable invoice math
+- **Practical file-based workflow**: works with regular files or stdin,
+  preserves input-based output naming, and resolves output and asset paths
+  predictably
 
 ## Install
 
@@ -45,48 +46,41 @@ brew install raine/invoicegen/invoicegen
 cargo install invoicegen
 ```
 
-### From source
-
-```sh
-git clone https://github.com/raine/invoicegen.git
-cd invoicegen
-cargo install --path .
-```
-
 The tool is a single binary with the Typst template and Inter fonts embedded, so
 the installed binary is self-contained.
 
 ## Usage
 
-### 1. Scaffold a config (optional)
+### Quick start
 
-```sh
-invoicegen init
-```
+This example is fully self-contained and does not require any global config.
 
-This writes a starter config to `~/.config/invoicegen/config.yaml` with a sample
-sender, defaults, and an `example-client` template. Edit it to match your
-business.
-
-The global config is **optional** — if it doesn't exist, `invoicegen` uses built-in
-defaults, and you can put everything in the invoice YAML instead.
-
-### 2. Write an invoice YAML
+### 1. Write an invoice YAML
 
 ```yaml
 # invoices/2026-04.yaml
 number: 17
 date: 2026-04-18
-client: example-client
-po_number: '001-015275'
-notes: '4/2026'
+sender:
+  name: 'Your Company Ltd.'
+  address: |
+    123 Main Street
+    City, Country
+client:
+  bill_to: |
+    Northwind Labs
+    42 Example Avenue
+    Helsinki 00100
+    Finland
+  default_rate: 100.00
+po_number: 'PO-2026-04-DEMO'
+notes: 'Demo invoice for April'
 items:
-  - description: 'Consulting'
-    quantity: 146
-    rate: 100.00
+  - description: 'Monthly development support'
+    quantity: 12
 ```
 
-### 3. Generate the PDF
+### 2. Generate the PDF
 
 ```sh
 invoicegen generate invoices/2026-04.yaml
@@ -107,6 +101,24 @@ cat invoices/2026-04.yaml | invoicegen generate -
 When reading from stdin, relative paths in the invoice YAML and the default
 output directory resolve from the current working directory. In stdin mode, the
 fallback output filename remains `invoice-<number>.pdf`.
+
+### If you invoice regularly
+
+Move shared sender details, defaults, and client templates into global config so
+your monthly invoice YAML files can stay smaller.
+
+### 1. Scaffold a config
+
+```sh
+invoicegen init
+```
+
+This writes a starter config to `~/.config/invoicegen/config.yaml` with a sample
+sender, defaults, and an `example-client` template. Edit it to match your
+business.
+
+Once config is in place, your invoice YAML can reference a client template or
+override parts of it inline.
 
 ## Configuration
 
@@ -151,14 +163,14 @@ clients:
 
 #### `defaults`
 
-- `currency` (string): `EUR`, `USD`, or `GBP` — used to pick the symbol
+- `currency` (string): `EUR`, `USD`, or `GBP`, used to pick the symbol
 - `date_format` (string): `jiff` strftime pattern (e.g. `%b %-d, %Y`)
 - `output_dir` (path, optional): where PDFs land when `-o` is omitted. Relative
   paths resolve from the invoice file's directory. If omitted, the PDF is
   written beside the invoice file.
 - `tax_rate` (decimal): percent (e.g. `24`). Defaults to `0`.
 - `tax_note` (string, optional): small italic note printed below the totals
-  block — handy for VAT disclaimers.
+  block, handy for VAT disclaimers.
 
 #### `clients`
 
@@ -250,9 +262,9 @@ just run -- generate examples/2026-04.yaml
 
 ## Related projects
 
-- [workmux](https://github.com/raine/workmux) — Git worktrees + tmux windows for
+- [workmux](https://github.com/raine/workmux): Git worktrees + tmux windows for
   parallel AI agent workflows
-- [claude-history](https://github.com/raine/claude-history) — Search and view
+- [claude-history](https://github.com/raine/claude-history): Search and view
   Claude Code conversation history with fzf
-- [git-surgeon](https://github.com/raine/git-surgeon) — Non-interactive
+- [git-surgeon](https://github.com/raine/git-surgeon): Non-interactive
   hunk-level git staging for AI agents
