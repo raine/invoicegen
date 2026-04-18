@@ -151,7 +151,8 @@ pub fn merge(
         items,
         tax_rate,
         tax_note,
-        currency: config.defaults.currency.clone(),
+        currency: config.defaults.currency,
+        locale: config.defaults.locale,
         date_format: config.defaults.date_format.clone(),
         logo_path,
     })
@@ -232,7 +233,8 @@ mod tests {
                 logo: None,
             },
             defaults: DefaultsConfig {
-                currency: "EUR".to_string(),
+                currency: crate::currency::Currency::Eur,
+                locale: crate::locale::Locale::EnUs,
                 date_format: "%Y-%m-%d".to_string(),
                 output_dir: PathBuf::from("pdf"),
                 tax_rate: dec!(0),
@@ -274,7 +276,7 @@ mod tests {
         assert_eq!(d.ship_to, "Acme Dock");
         assert_eq!(d.items[0].rate, dec!(100));
         assert_eq!(d.sender.name, "Me Co");
-        assert_eq!(d.currency, "EUR");
+        assert_eq!(d.currency, crate::currency::Currency::Eur);
     }
 
     #[test]

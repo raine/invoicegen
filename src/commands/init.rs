@@ -13,6 +13,7 @@ const STARTER: &str = r#"sender:
 
 defaults:
   currency: EUR
+  locale: en-US
   date_format: "%b %-d, %Y"
   output_dir: ./pdf
   tax_rate: 0
