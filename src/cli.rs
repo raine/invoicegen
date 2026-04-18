@@ -10,7 +10,7 @@ const STYLES: Styles = Styles::styled()
     .placeholder(AnsiColor::Cyan.on_default());
 
 #[derive(Parser)]
-#[command(name = "invoice")]
+#[command(name = "invoicegen")]
 #[command(about = "Generate PDF invoices from YAML")]
 #[command(styles = STYLES)]
 pub struct Cli {
@@ -20,7 +20,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Scaffold a starter config at ~/.config/invoice/config.yaml
+    /// Scaffold a starter config at ~/.config/invoicegen/config.yaml
     Init(InitArgs),
     /// Render an invoice YAML file to PDF
     Generate(Box<GenerateArgs>),

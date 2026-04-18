@@ -1,12 +1,12 @@
 [package]
-name = "invoice"
+name = "invoicegen"
 version = "0.1.0"
 edition = "2024"
 description = "Render invoices from YAML to PDF using Typst."
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/raine/invoice"
-homepage = "https://github.com/raine/invoice"
+repository = "https://github.com/raine/invoicegen"
+homepage = "https://github.com/raine/invoicegen"
 keywords = ["invoice", "yaml", "pdf", "typst", "cli"]
 categories = ["command-line-utilities"]
 

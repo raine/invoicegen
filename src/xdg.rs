@@ -1,6 +1,6 @@
 //! Centralized XDG Base Directory resolution.
 //!
-//! All invoice-owned paths should go through this module rather than
+//! All invoicegen-owned paths should go through this module rather than
 //! resolving `dirs::home_dir()` directly.
 
 use anyhow::{Context, Result};
@@ -21,7 +21,7 @@ fn base_dir(env_var: &str, default_suffix: &str) -> Result<PathBuf> {
     Ok(home.join(default_suffix))
 }
 
-/// `$XDG_CONFIG_HOME/invoice` (default: `~/.config/invoice`)
+/// `$XDG_CONFIG_HOME/invoicegen` (default: `~/.config/invoicegen`)
 pub fn config_dir() -> Result<PathBuf> {
-    Ok(base_dir("XDG_CONFIG_HOME", ".config")?.join("invoice"))
+    Ok(base_dir("XDG_CONFIG_HOME", ".config")?.join("invoicegen"))
 }

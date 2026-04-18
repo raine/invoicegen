@@ -9,7 +9,7 @@ const STARTER: &str = r#"sender:
   address: |
     123 Main Street
     City, Country
-  # logo: ~/.config/invoice/logo.svg
+  # logo: ~/.config/invoicegen/logo.svg
 
 defaults:
   currency: EUR

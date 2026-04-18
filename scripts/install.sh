@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# invoice installation script
-# Usage: curl -fsSL https://raw.githubusercontent.com/raine/invoice/main/scripts/install.sh | bash
+# invoicegen installation script
+# Usage: curl -fsSL https://raw.githubusercontent.com/raine/invoicegen/main/scripts/install.sh | bash
 #
 # Environment variables:
-#   INVOICE_VERSION      - Pin a specific version (e.g., v0.1.0)
-#   INVOICE_INSTALL_DIR  - Override install directory (default: /usr/local/bin or ~/.local/bin)
+#   INVOICEGEN_VERSION      - Pin a specific version (e.g., v0.1.0)
+#   INVOICEGEN_INSTALL_DIR  - Override install directory (default: /usr/local/bin or ~/.local/bin)
 #
 # Examples:
-#   INVOICE_VERSION=v0.1.0 bash install.sh
-#   INVOICE_INSTALL_DIR=/opt/bin bash install.sh
+#   INVOICEGEN_VERSION=v0.1.0 bash install.sh
+#   INVOICEGEN_INSTALL_DIR=/opt/bin bash install.sh
 #
 
 set -e
@@ -49,9 +49,9 @@ detect_platform() {
 	*)
 		log_error "Unsupported operating system: $(uname -s)"
 		echo ""
-		echo "invoice supports macOS and Linux."
+		echo "invoicegen supports macOS and Linux."
 		echo "For other platforms, try building from source with Cargo:"
-		echo "  cargo install invoice"
+		echo "  cargo install invoicegen"
 		echo ""
 		exit 1
 		;;
@@ -67,9 +67,9 @@ detect_platform() {
 	*)
 		log_error "Unsupported architecture: $(uname -m)"
 		echo ""
-		echo "invoice prebuilt binaries are available for amd64 and arm64."
+		echo "invoicegen prebuilt binaries are available for amd64 and arm64."
 		echo "For other architectures, try building from source with Cargo:"
-		echo "  cargo install invoice"
+		echo "  cargo install invoicegen"
 		echo ""
 		exit 1
 		;;
@@ -79,18 +79,18 @@ detect_platform() {
 }
 
 install_from_release() {
-	log_info "Installing invoice from GitHub releases..."
+	log_info "Installing invoicegen from GitHub releases..."
 
 	local platform=$1
 	local tmp_dir
 	tmp_dir=$(mktemp -d)
 	trap 'rm -rf "$tmp_dir"' EXIT
 
-	local version="${INVOICE_VERSION:-}"
+	local version="${INVOICEGEN_VERSION:-}"
 
 	if [ -z "$version" ]; then
 		log_info "Fetching latest release..."
-		local latest_url="https://api.github.com/repos/raine/invoice/releases/latest"
+		local latest_url="https://api.github.com/repos/raine/invoicegen/releases/latest"
 		local release_json
 
 		if command -v curl &>/dev/null; then
@@ -109,7 +109,7 @@ install_from_release() {
 			echo ""
 			echo "This might be due to network issues or GitHub API rate limits."
 			echo "You can specify a version manually:"
-			echo "  INVOICE_VERSION=v0.1.0 bash install.sh"
+			echo "  INVOICEGEN_VERSION=v0.1.0 bash install.sh"
 			echo ""
 			exit 1
 		fi
@@ -117,8 +117,8 @@ install_from_release() {
 
 	log_info "Installing version: $version"
 
-	local archive_name="invoice-${platform}.tar.gz"
-	local download_url="https://github.com/raine/invoice/releases/download/${version}/${archive_name}"
+	local archive_name="invoicegen-${platform}.tar.gz"
+	local download_url="https://github.com/raine/invoicegen/releases/download/${version}/${archive_name}"
 
 	log_info "Downloading $archive_name..."
 
@@ -129,7 +129,7 @@ install_from_release() {
 			echo ""
 			echo "The release may not have a prebuilt binary for your platform."
 			echo "Try installing with Cargo instead:"
-			echo "  cargo install invoice"
+			echo "  cargo install invoicegen"
 			echo ""
 			cd - >/dev/null || cd "$HOME"
 			exit 1
@@ -140,7 +140,7 @@ install_from_release() {
 			echo ""
 			echo "The release may not have a prebuilt binary for your platform."
 			echo "Try installing with Cargo instead:"
-			echo "  cargo install invoice"
+			echo "  cargo install invoicegen"
 			echo ""
 			cd - >/dev/null || cd "$HOME"
 			exit 1
@@ -148,8 +148,8 @@ install_from_release() {
 	fi
 
 	log_info "Verifying checksum..."
-	local checksum_file="invoice-${platform}.sha256"
-	local checksum_url="https://github.com/raine/invoice/releases/download/${version}/${checksum_file}"
+	local checksum_file="invoicegen-${platform}.sha256"
+	local checksum_url="https://github.com/raine/invoicegen/releases/download/${version}/${checksum_file}"
 
 	if command -v curl &>/dev/null; then
 		if ! curl -fsSL --retry 3 --retry-connrefused --connect-timeout 10 --max-time 30 -o "$checksum_file" "$checksum_url"; then
@@ -197,7 +197,7 @@ install_from_release() {
 		exit 1
 	fi
 
-	local install_dir="${INVOICE_INSTALL_DIR:-}"
+	local install_dir="${INVOICEGEN_INSTALL_DIR:-}"
 	if [ -z "$install_dir" ]; then
 		if [[ -w /usr/local/bin ]]; then
 			install_dir="/usr/local/bin"
@@ -207,34 +207,34 @@ install_from_release() {
 		fi
 	fi
 
-	if [ -f "$install_dir/invoice" ]; then
+	if [ -f "$install_dir/invoicegen" ]; then
 		local existing_version
-		existing_version=$("$install_dir/invoice" --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+		existing_version=$("$install_dir/invoicegen" --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
 		log_info "Existing installation found: $existing_version"
 		log_info "Upgrading to: $version"
 	fi
 
 	log_info "Installing to $install_dir..."
-	local tmp_binary="$install_dir/invoice.tmp.$$"
+	local tmp_binary="$install_dir/invoicegen.tmp.$$"
 
 	if [[ -w "$install_dir" ]]; then
-		cp invoice "$tmp_binary"
+		cp invoicegen "$tmp_binary"
 		chmod +x "$tmp_binary"
-		mv -f "$tmp_binary" "$install_dir/invoice"
+		mv -f "$tmp_binary" "$install_dir/invoicegen"
 	else
-		if ! sudo cp invoice "$tmp_binary"; then
+		if ! sudo cp invoicegen "$tmp_binary"; then
 			log_error "Failed to install to $install_dir (sudo required)"
 			exit 1
 		fi
 		sudo chmod +x "$tmp_binary"
-		sudo mv -f "$tmp_binary" "$install_dir/invoice"
+		sudo mv -f "$tmp_binary" "$install_dir/invoicegen"
 	fi
 
 	if [[ "$(uname -s)" == "Darwin" ]] && command -v xattr &>/dev/null; then
-		xattr -d com.apple.quarantine "$install_dir/invoice" 2>/dev/null || true
+		xattr -d com.apple.quarantine "$install_dir/invoicegen" 2>/dev/null || true
 	fi
 
-	log_success "invoice installed to $install_dir/invoice"
+	log_success "invoicegen installed to $install_dir/invoicegen"
 
 	if [[ ":$PATH:" != *":$install_dir:"* ]]; then
 		log_warning "$install_dir is not in your PATH"
@@ -252,31 +252,31 @@ install_from_release() {
 verify_installation() {
 	local install_dir="$1"
 
-	if [ ! -x "$install_dir/invoice" ]; then
-		log_error "invoice binary not found or not executable at $install_dir/invoice"
+	if [ ! -x "$install_dir/invoicegen" ]; then
+		log_error "invoicegen binary not found or not executable at $install_dir/invoicegen"
 		exit 1
 	fi
 
-	if ! "$install_dir/invoice" --version &>/dev/null; then
-		log_error "invoice binary exists but failed to run"
+	if ! "$install_dir/invoicegen" --version &>/dev/null; then
+		log_error "invoicegen binary exists but failed to run"
 		exit 1
 	fi
 
-	log_success "invoice is installed and ready!"
+	log_success "invoicegen is installed and ready!"
 	echo ""
-	"$install_dir/invoice" --version
+	"$install_dir/invoicegen" --version
 	echo ""
 	echo "Get started:"
-	echo "  invoice init              # scaffold a config file"
-	echo "  invoice generate --help   # see generation options"
+	echo "  invoicegen init              # scaffold a config file"
+	echo "  invoicegen generate --help   # see generation options"
 	echo ""
-	echo "Documentation: https://github.com/raine/invoice"
+	echo "Documentation: https://github.com/raine/invoicegen"
 	echo ""
 }
 
 main() {
 	echo ""
-	echo "invoice installer"
+	echo "invoicegen installer"
 	echo ""
 
 	log_info "Detecting platform..."

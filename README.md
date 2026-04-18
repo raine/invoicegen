@@ -1,6 +1,6 @@
-# invoice
+# invoicegen
 
-`invoice` is a CLI that renders invoices from YAML to PDF. Write the invoice as
+`invoicegen` is a CLI that renders invoices from YAML to PDF. Write the invoice as
 a small YAML file, and get a clean, paginated PDF rendered by
 [Typst](https://typst.app) with embedded fonts — no system dependencies, no
 LaTeX, no headless browser.
@@ -23,20 +23,20 @@ version control and out of spreadsheet tools.
 - **Decimal-accurate money** — `rust_decimal` for subtotals, tax, and totals (no
   floating-point surprises)
 - **XDG-compliant** — honors `$XDG_CONFIG_HOME`, default
-  `~/.config/invoice/config.yaml`
+  `~/.config/invoicegen/config.yaml`
 
 ## Install
 
 ### Quick install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/raine/invoice/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/raine/invoicegen/main/scripts/install.sh | bash
 ```
 
 ### Homebrew (macOS/Linux)
 
 ```sh
-brew install raine/invoice/invoice
+brew install raine/invoicegen/invoicegen
 ```
 
 ### Cargo
@@ -48,8 +48,8 @@ cargo install --path .
 ### From source
 
 ```sh
-git clone https://github.com/raine/invoice.git
-cd invoice
+git clone https://github.com/raine/invoicegen.git
+cd invoicegen
 cargo install --path .
 ```
 
@@ -61,14 +61,14 @@ the installed binary is self-contained.
 ### 1. Scaffold a config (optional)
 
 ```sh
-invoice init
+invoicegen init
 ```
 
-This writes a starter config to `~/.config/invoice/config.yaml` with a sample
+This writes a starter config to `~/.config/invoicegen/config.yaml` with a sample
 sender, defaults, and an `example-client` template. Edit it to match your
 business.
 
-The global config is **optional** — if it doesn't exist, `invoice` uses built-in
+The global config is **optional** — if it doesn't exist, `invoicegen` uses built-in
 defaults, and you can put everything in the invoice YAML instead.
 
 ### 2. Write an invoice YAML
@@ -89,7 +89,7 @@ items:
 ### 3. Generate the PDF
 
 ```sh
-invoice generate invoices/2026-04.yaml
+invoicegen generate invoices/2026-04.yaml
 # → Wrote invoices/2026-04.pdf
 ```
 
@@ -98,10 +98,10 @@ file. If `defaults.output_dir` is set in config, that directory is used instead.
 
 ### Stdin mode
 
-Pipe generated YAML into `invoice generate -`:
+Pipe generated YAML into `invoicegen generate -`:
 
 ```sh
-cat invoices/2026-04.yaml | invoice generate -
+cat invoices/2026-04.yaml | invoicegen generate -
 ```
 
 When reading from stdin, relative paths in the invoice YAML and the default
@@ -110,8 +110,8 @@ fallback output filename remains `invoice-<number>.pdf`.
 
 ## Configuration
 
-The global config lives at `$XDG_CONFIG_HOME/invoice/config.yaml` (default
-`~/.config/invoice/config.yaml`).
+The global config lives at `$XDG_CONFIG_HOME/invoicegen/config.yaml` (default
+`~/.config/invoicegen/config.yaml`).
 
 ### Example config
 
@@ -121,7 +121,7 @@ sender:
   address: |
     123 Main Street
     City, Country
-  logo: ~/.config/invoice/logo.svg # optional; SVG, PNG, or JPEG
+  logo: ~/.config/invoicegen/logo.svg # optional; SVG, PNG, or JPEG
 
 defaults:
   currency: EUR
@@ -207,29 +207,31 @@ items: # required, at least one
 `client` accepts either:
 
 - a string like `client: example-client` to use a config client template as-is
-- an object to override a template or define invoice-local client details directly
+- an object to override a template or define invoice-local client details
+  directly
 
-Invoice-local `sender` replaces the global sender block when present. Invoice-local
-`client` data overrides global config or a referenced client template.
-That keeps invoices portable: a YAML + `logo.svg` pair can travel together, and
-the invoice still renders identically on a machine with no global config.
+Invoice-local `sender` replaces the global sender block when present.
+Invoice-local `client` data overrides global config or a referenced client
+template. That keeps invoices portable: a YAML + `logo.svg` pair can travel
+together, and the invoice still renders identically on a machine with no global
+config.
 
 ## CLI reference
 
 ```
 Generate PDF invoices from YAML
 
-Usage: invoice <COMMAND>
+Usage: invoicegen <COMMAND>
 
 Commands:
-  init      Scaffold a starter config at ~/.config/invoice/config.yaml
+  init      Scaffold a starter config at ~/.config/invoicegen/config.yaml
   generate  Render an invoice YAML file to PDF
 ```
 
-### `invoice generate`
+### `invoicegen generate`
 
 ```
-Usage: invoice generate [OPTIONS] <FILE>
+Usage: invoicegen generate [OPTIONS] <FILE>
 
 Arguments:
   <FILE>  Path to the invoice YAML file, or '-' to read YAML from stdin

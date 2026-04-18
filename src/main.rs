@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use invoice::cli::{Cli, Command};
-use invoice::commands;
+use invoicegen::cli::{Cli, Command};
+use invoicegen::commands;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

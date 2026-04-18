@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  BIN_NAME: invoice
+  BIN_NAME: invoicegen
 
 jobs:
   build:
@@ -89,7 +89,7 @@ jobs:
           merge-multiple: true
       - uses: actions/checkout@v4
         with:
-          repository: raine/homebrew-invoice
+          repository: raine/homebrew-invoicegen
           token: ${{ secrets.RELEASE_TOKEN }}
           path: tap
       - name: Generate formula and push to tap
@@ -97,48 +97,48 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           VERSION="${VERSION#v}"
-          SHA_ARM=$(awk '{print $1}' invoice-darwin-arm64.sha256)
-          SHA_INTEL=$(awk '{print $1}' invoice-darwin-amd64.sha256)
-          SHA_LINUX=$(awk '{print $1}' invoice-linux-amd64.sha256)
+          SHA_ARM=$(awk '{print $1}' invoicegen-darwin-arm64.sha256)
+          SHA_INTEL=$(awk '{print $1}' invoicegen-darwin-amd64.sha256)
+          SHA_LINUX=$(awk '{print $1}' invoicegen-linux-amd64.sha256)
 
           mkdir -p tap/Formula
-          cat > tap/Formula/invoice.rb << EOF
-          class Invoice < Formula
+          cat > tap/Formula/invoicegen.rb << EOF
+          class Invoicegen < Formula
             desc "Render invoices from YAML to PDF using Typst"
-            homepage "https://github.com/raine/invoice"
+            homepage "https://github.com/raine/invoicegen"
             version "${VERSION}"
             license "MIT"
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/raine/invoice/releases/download/v${VERSION}/invoice-darwin-arm64.tar.gz"
+                url "https://github.com/raine/invoicegen/releases/download/v${VERSION}/invoicegen-darwin-arm64.tar.gz"
                 sha256 "${SHA_ARM}"
               else
-                url "https://github.com/raine/invoice/releases/download/v${VERSION}/invoice-darwin-amd64.tar.gz"
+                url "https://github.com/raine/invoicegen/releases/download/v${VERSION}/invoicegen-darwin-amd64.tar.gz"
                 sha256 "${SHA_INTEL}"
               end
             end
 
             on_linux do
-              url "https://github.com/raine/invoice/releases/download/v${VERSION}/invoice-linux-amd64.tar.gz"
+              url "https://github.com/raine/invoicegen/releases/download/v${VERSION}/invoicegen-linux-amd64.tar.gz"
               sha256 "${SHA_LINUX}"
             end
 
             def install
-              bin.install "invoice"
+              bin.install "invoicegen"
             end
 
             test do
-              assert_match version.to_s, shell_output("#{bin}/invoice --version")
+              assert_match version.to_s, shell_output("#{bin}/invoicegen --version")
             end
           end
           EOF
-          sed -i 's/^          //' tap/Formula/invoice.rb
+          sed -i 's/^          //' tap/Formula/invoicegen.rb
 
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/invoice.rb
-          git commit -m "invoice ${VERSION}"
+          git add Formula/invoicegen.rb
+          git commit -m "invoicegen ${VERSION}"
           git pull --rebase
           git push

@@ -33,9 +33,9 @@ mod tests {
         assert_eq!(
             resolve_relative(
                 Path::new("/tmp/invoices"),
-                Path::new("~/.config/invoice/logo.png")
+                Path::new("~/.config/invoicegen/logo.png")
             ),
-            home.join(".config/invoice/logo.png")
+            home.join(".config/invoicegen/logo.png")
         );
     }
 
