@@ -90,11 +90,11 @@ items:
 
 ```sh
 invoice generate invoices/2026-04.yaml
-# → Wrote invoices/pdf/invoice-17.pdf
+# → Wrote invoices/invoice-17.pdf
 ```
 
-Output goes to `<invoice_dir>/<defaults.output_dir>/invoice-<number>.pdf`.
-Override with `-o/--output`.
+When `-o` is omitted, output goes to `invoice-<number>.pdf` beside the invoice
+file. If `defaults.output_dir` is set in config, that directory is used instead.
 
 ### Stdin mode
 
@@ -125,7 +125,6 @@ sender:
 defaults:
   currency: EUR
   date_format: '%b %-d, %Y'
-  output_dir: ./pdf
   tax_rate: 0
   tax_note: 'VAT 0%, Export of goods or services'
 
@@ -153,8 +152,9 @@ clients:
 
 - `currency` (string): `EUR`, `USD`, or `GBP` — used to pick the symbol
 - `date_format` (string): `jiff` strftime pattern (e.g. `%b %-d, %Y`)
-- `output_dir` (path): where PDFs land when `-o` is omitted. Relative paths
-  resolve from the invoice file's directory.
+- `output_dir` (path, optional): where PDFs land when `-o` is omitted. Relative
+  paths resolve from the invoice file's directory. If omitted, the PDF is
+  written beside the invoice file.
 - `tax_rate` (decimal): percent (e.g. `24`). Defaults to `0`.
 - `tax_note` (string, optional): small italic note printed below the totals
   block — handy for VAT disclaimers.
@@ -234,7 +234,7 @@ Arguments:
 
 Options:
   -o, --output <OUTPUT>  Output PDF path
-                         (default: <output_dir>/invoice-<number>.pdf)
+                         (default: invoice-<number>.pdf beside the invoice file)
 ```
 
 ## Development

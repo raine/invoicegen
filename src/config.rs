@@ -35,7 +35,7 @@ pub struct DefaultsConfig {
     pub currency: Currency,
     pub locale: Locale,
     pub date_format: String,
-    pub output_dir: PathBuf,
+    pub output_dir: Option<PathBuf>,
     pub tax_rate: Decimal,
     pub tax_note: Option<String>,
 }
@@ -46,7 +46,7 @@ impl Default for DefaultsConfig {
             currency: Currency::Eur,
             locale: Locale::EnUs,
             date_format: "%b %-d, %Y".to_string(),
-            output_dir: PathBuf::from("pdf"),
+            output_dir: None,
             tax_rate: Decimal::ZERO,
             tax_note: Some("VAT 0%, Export of goods or services".to_string()),
         }

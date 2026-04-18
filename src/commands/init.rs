@@ -15,7 +15,6 @@ defaults:
   currency: EUR
   locale: en-US
   date_format: "%b %-d, %Y"
-  output_dir: ./pdf
   tax_rate: 0
   tax_note: "VAT 0%, Export of goods or services"
 

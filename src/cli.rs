@@ -38,7 +38,7 @@ pub struct GenerateArgs {
     /// Path to the invoice YAML file, or '-' to read YAML from stdin.
     pub file: PathBuf,
 
-    /// Output PDF path (default: <output_dir>/invoice-<number>.pdf)
+    /// Output PDF path (default: invoice-<number>.pdf beside the invoice file)
     #[arg(long, short)]
     pub output: Option<PathBuf>,
 }

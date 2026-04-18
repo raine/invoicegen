@@ -127,7 +127,7 @@ mod tests {
                 currency: Currency::Eur,
                 locale: Locale::EnUs,
                 date_format: "%Y-%m-%d".to_string(),
-                output_dir: PathBuf::from("pdf"),
+                output_dir: None,
                 tax_rate: dec!(0),
                 tax_note: Some("vat note".to_string()),
             },

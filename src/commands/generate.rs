@@ -69,9 +69,9 @@ fn resolve_output_path(
 ) -> PathBuf {
     match cli_output {
         Some(p) => p.clone(),
-        None => {
-            let dir = resolve_relative(invoice_dir, &config.defaults.output_dir);
-            dir.join(format!("invoice-{number}.pdf"))
-        }
+        None => match &config.defaults.output_dir {
+            Some(dir) => resolve_relative(invoice_dir, dir).join(format!("invoice-{number}.pdf")),
+            None => invoice_dir.join(format!("invoice-{number}.pdf")),
+        },
     }
 }
