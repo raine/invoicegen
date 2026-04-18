@@ -12,21 +12,9 @@ use crate::render::render_pdf;
 pub fn run(args: GenerateArgs) -> Result<()> {
     let config_path = default_config_path()?;
     let config = load_or_default(&config_path)?;
-    let cli_patch = args.invoice_patch(args.file.is_none())?;
-
-    let (invoice_patch, dir) = match &args.file {
-        Some(path) => {
-            let dir = invoice_dir(path)?;
-            (Some(load_invoice(path)?.into_patch(&dir)), dir)
-        }
-        None => (None, std::env::current_dir()?),
-    };
-
-    let selected_client = cli_patch.client.clone().or_else(|| {
-        invoice_patch
-            .as_ref()
-            .and_then(|patch| patch.client.clone())
-    });
+    let dir = invoice_base_dir(&args.file)?;
+    let invoice_patch = load_invoice(&args.file)?.into_patch(&dir);
+    let selected_client = invoice_patch.client.clone();
 
     let mut layers = vec![config.defaults_patch()];
     if let Some(client) = selected_client.as_deref()
@@ -34,10 +22,7 @@ pub fn run(args: GenerateArgs) -> Result<()> {
     {
         layers.push(client_patch);
     }
-    if let Some(invoice_patch) = invoice_patch {
-        layers.push(invoice_patch);
-    }
-    layers.push(cli_patch);
+    layers.push(invoice_patch);
 
     let invoice = merge(layers, selected_client.as_deref(), &config.client_keys())?;
     let totals = calculate(&invoice);
@@ -66,6 +51,14 @@ pub fn run(args: GenerateArgs) -> Result<()> {
 
     println!("Wrote {}", output_path.display());
     Ok(())
+}
+
+fn invoice_base_dir(invoice_file: &Path) -> Result<PathBuf> {
+    if invoice_file == Path::new("-") {
+        std::env::current_dir().context("reading current directory for stdin invoice")
+    } else {
+        invoice_dir(invoice_file)
+    }
 }
 
 fn resolve_output_path(

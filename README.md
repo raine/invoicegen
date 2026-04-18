@@ -1,9 +1,9 @@
 # invoice
 
 `invoice` is a CLI that renders invoices from YAML to PDF. Write the invoice as
-a small YAML file (or pass everything on the command line), and get a clean,
-paginated PDF rendered by [Typst](https://typst.app) with embedded fonts — no
-system dependencies, no LaTeX, no headless browser.
+a small YAML file, and get a clean, paginated PDF rendered by
+[Typst](https://typst.app) with embedded fonts — no system dependencies, no
+LaTeX, no headless browser.
 
 Designed for solo contractors and small consultancies who want invoices under
 version control and out of spreadsheet tools.
@@ -14,8 +14,6 @@ version control and out of spreadsheet tools.
 ## Features
 
 - **YAML invoices** — version-controlled, diffable, easy to template per month
-- **CLI-only mode** — generate one-off invoices without a YAML file, purely from
-  flags
 - **Global config with client templates** — store sender info and per-client
   bill_to/ship_to/default rates once, reuse across invoices
 - **Self-contained invoices** — YAML can carry its own sender, client, logo, and
@@ -86,43 +84,25 @@ invoice generate invoices/2026-04.yaml
 Output goes to `<invoice_dir>/<defaults.output_dir>/invoice-<number>.pdf`.
 Override with `-o/--output`.
 
-### CLI-only mode
+### Stdin mode
 
-Skip the YAML entirely for a one-off invoice:
+Pipe generated YAML into `invoice generate -`:
 
 ```sh
-invoice generate \
-  --number 42 \
-  --date 2026-04-18 \
-  --client example-client \
-  --description "Consulting" \
-  --quantity 10 \
-  --rate 150 \
-  -o /tmp/invoice-42.pdf
+cat invoices/2026-04.yaml | invoice generate -
 ```
 
-Or, fully self-contained (no global config, no client template):
+When reading from stdin, relative paths in the invoice YAML and the default
+output directory resolve from the current working directory.
+
+### Editing recurring invoices
+
+For recurring invoices, update the YAML directly before generating the PDF. For
+example, to bump the quantity from `146` to `152`:
 
 ```sh
-invoice generate \
-  --number 42 \
-  --date 2026-04-18 \
-  --bill-to "ACME Inc
-123 Some St" \
-  --description "Consulting" \
-  --quantity 10 \
-  --rate 150 \
-  -o /tmp/invoice-42.pdf
-```
-
-### Overrides
-
-Any CLI flag overrides the corresponding YAML field, which overrides the client
-template, which overrides defaults. For example, to bump the quantity on a
-recurring monthly invoice:
-
-```sh
-invoice generate invoices/2026-04.yaml --quantity 152
+perl -0pi -e 's/quantity: 146/quantity: 152/' invoices/2026-04.yaml
+invoice generate invoices/2026-04.yaml
 ```
 
 ## Configuration
@@ -240,31 +220,15 @@ Commands:
 ### `invoice generate`
 
 ```
-Usage: invoice generate [OPTIONS] [FILE]
+Usage: invoice generate [OPTIONS] <FILE>
 
 Arguments:
-  [FILE]  Path to the invoice YAML file. Omit to build the invoice
-          entirely from CLI flags.
+  <FILE>  Path to the invoice YAML file, or '-' to read YAML from stdin
 
 Options:
-      --number <NUMBER>            Invoice number
-      --date <DATE>                Invoice date (YYYY-MM-DD)
-      --po <PO>                    PO number
-      --client <CLIENT>            Client template key
-      --notes <NOTES>              Notes
-      --description <DESCRIPTION>  First item description
-      --quantity <QUANTITY>        First item quantity
-      --rate <RATE>                First item rate
-      --tax-rate <TAX_RATE>        Tax rate in percent (e.g. 24)
-      --tax-note <TAX_NOTE>        Tax note printed below totals
-      --bill-to <BILL_TO>          Override client bill_to (multi-line)
-      --ship-to <SHIP_TO>          Override client ship_to (multi-line)
-  -o, --output <OUTPUT>            Output PDF path
-                                   (default: <output_dir>/invoice-<number>.pdf)
+  -o, --output <OUTPUT>  Output PDF path
+                         (default: <output_dir>/invoice-<number>.pdf)
 ```
-
-When invoked without `[FILE]`, the following flags are required: `--number`,
-`--date`, `--description`, `--quantity`, and either `--client` or `--bill-to`.
 
 ## Development
 
