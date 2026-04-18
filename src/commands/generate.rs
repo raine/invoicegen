@@ -38,7 +38,9 @@ pub fn run(args: GenerateArgs) -> Result<()> {
 
     let pdf = render_pdf(&render_ctx, logo_bytes, logo_virtual_name)?;
 
-    if let Some(parent) = output_path.parent() {
+    if let Some(parent) = output_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
         fs::create_dir_all(parent)
             .with_context(|| format!("creating output dir {}", parent.display()))?;
     }
