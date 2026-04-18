@@ -67,29 +67,32 @@ pub fn resolve(
         invoice.client_override.ship_to = Some(s);
     }
 
-    // 2. Client template
-    let template = config.clients.get(&invoice.client).with_context(|| {
-        let keys: Vec<_> = config.clients.keys().cloned().collect();
-        format!("unknown client '{}'. Available: {:?}", invoice.client, keys)
-    })?;
+    // 2. Client template (optional — may be absent if overrides provide bill_to)
+    let template = config.clients.get(&invoice.client);
 
     // 3. Resolve client block (override wins)
     let bill_to = invoice
         .client_override
         .bill_to
         .clone()
-        .or_else(|| template.bill_to.clone())
-        .context("bill_to missing (set in client template or client_override)")?;
+        .or_else(|| template.and_then(|t| t.bill_to.clone()))
+        .with_context(|| {
+            let keys: Vec<_> = config.clients.keys().cloned().collect();
+            format!(
+                "bill_to missing. Set it under client_override in the invoice, or define client '{}' in config (available: {:?})",
+                invoice.client, keys
+            )
+        })?;
     let ship_to = invoice
         .client_override
         .ship_to
         .clone()
-        .or_else(|| template.ship_to.clone())
+        .or_else(|| template.and_then(|t| t.ship_to.clone()))
         .unwrap_or_default();
     let default_rate = invoice
         .client_override
         .default_rate
-        .or(template.default_rate);
+        .or_else(|| template.and_then(|t| t.default_rate));
 
     // 4. Validate items
     if invoice.items.is_empty() {
@@ -141,17 +144,31 @@ pub fn resolve(
     let date_display = strtime::format(&config.defaults.date_format, invoice.date)
         .with_context(|| format!("formatting date with '{}'", config.defaults.date_format))?;
 
-    // 7. Sender
-    let sender_name = config.sender.name.clone();
-    let sender_address = config.sender.address.clone().unwrap_or_default();
+    // 7. Sender (invoice's sender_override wins over global config)
+    let sender_name = invoice
+        .sender_override
+        .name
+        .clone()
+        .unwrap_or_else(|| config.sender.name.clone());
+    let sender_address = invoice
+        .sender_override
+        .address
+        .clone()
+        .or_else(|| config.sender.address.clone())
+        .unwrap_or_default();
 
-    // 8. Logo
-    let (logo_bytes, logo_virtual_name) = match &config.sender.logo {
-        Some(p) => {
-            let expanded = expand_tilde(p);
-            let bytes = std::fs::read(&expanded)
-                .with_context(|| format!("reading logo {}", expanded.display()))?;
-            let ext = expanded
+    // 8. Logo (invoice override path is relative to invoice_dir; config path is
+    //    relative to HOME and supports ~)
+    let logo_source: Option<std::path::PathBuf> = if let Some(p) = &invoice.sender_override.logo {
+        Some(resolve_relative(invoice_dir, &expand_tilde(p)))
+    } else {
+        config.sender.logo.as_ref().map(|p| expand_tilde(p))
+    };
+    let (logo_bytes, logo_virtual_name) = match logo_source {
+        Some(path) => {
+            let bytes =
+                std::fs::read(&path).with_context(|| format!("reading logo {}", path.display()))?;
+            let ext = path
                 .extension()
                 .and_then(|e| e.to_str())
                 .unwrap_or("svg")

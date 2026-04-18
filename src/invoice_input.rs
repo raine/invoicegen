@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use jiff::civil::Date;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path};
+use std::{fs, path::Path, path::PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -17,8 +17,18 @@ pub struct InvoiceFile {
     #[serde(default)]
     pub tax_note: Option<String>,
     #[serde(default)]
+    pub sender_override: SenderOverride,
+    #[serde(default)]
     pub client_override: ClientOverride,
     pub items: Vec<LineItemInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct SenderOverride {
+    pub name: Option<String>,
+    pub address: Option<String>,
+    pub logo: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
