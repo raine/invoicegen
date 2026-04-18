@@ -95,16 +95,6 @@ cat invoices/2026-04.yaml | invoice generate -
 When reading from stdin, relative paths in the invoice YAML and the default
 output directory resolve from the current working directory.
 
-### Editing recurring invoices
-
-For recurring invoices, update the YAML directly before generating the PDF. For
-example, to bump the quantity from `146` to `152`:
-
-```sh
-perl -0pi -e 's/quantity: 146/quantity: 152/' invoices/2026-04.yaml
-invoice generate invoices/2026-04.yaml
-```
-
 ## Configuration
 
 The global config lives at `$XDG_CONFIG_HOME/invoice/config.yaml` (default
