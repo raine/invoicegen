@@ -9,6 +9,14 @@ repository = "https://github.com/raine/invoicegen"
 homepage = "https://github.com/raine/invoicegen"
 keywords = ["invoice", "yaml", "pdf", "typst", "cli"]
 categories = ["command-line-utilities"]
+include = [
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "src/**",
+    "templates/**",
+    "assets/fonts/**",
+]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
