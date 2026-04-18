@@ -7,3 +7,4 @@ pub mod money;
 pub mod paths;
 pub mod render;
 pub mod resolve;
+pub mod xdg;
