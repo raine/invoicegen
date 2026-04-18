@@ -1,16 +1,16 @@
 use rust_decimal::Decimal;
 
-use crate::domain::{CalculatedInvoice, CalculatedLineItem, DomainInvoice};
+use crate::domain::{CalculatedInvoice, CalculatedLineItem, InvoiceDocument};
 
-pub fn calculate(invoice: DomainInvoice) -> CalculatedInvoice {
+pub fn calculate(invoice: InvoiceDocument) -> CalculatedInvoice {
     let minor = invoice.currency.minor_unit();
     let mut items = Vec::with_capacity(invoice.items.len());
     let mut subtotal = Decimal::ZERO;
-    for item in invoice.items {
+    for item in &invoice.items {
         let amount = (item.quantity * item.rate).round_dp(minor);
         subtotal += amount;
         items.push(CalculatedLineItem {
-            description: item.description,
+            description: item.description.clone(),
             quantity: item.quantity,
             rate: item.rate,
             amount,
@@ -20,37 +20,28 @@ pub fn calculate(invoice: DomainInvoice) -> CalculatedInvoice {
     let total = subtotal + tax;
 
     CalculatedInvoice {
-        number: invoice.number,
-        date: invoice.date,
-        po_number: invoice.po_number,
-        notes: invoice.notes,
-        sender: invoice.sender,
-        bill_to: invoice.bill_to,
-        ship_to: invoice.ship_to,
+        invoice,
         items,
         subtotal,
-        tax_rate: invoice.tax_rate,
         tax,
         total,
-        tax_note: invoice.tax_note,
-        currency: invoice.currency,
-        locale: invoice.locale,
-        date_format: invoice.date_format,
-        logo_path: invoice.logo_path,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{DomainLineItem, Party};
+    use crate::currency::Currency;
+    use crate::domain::{InvoiceLineItem, Party};
+    use crate::locale::Locale;
     use jiff::civil::date;
     use rust_decimal_macros::dec;
 
-    fn inv(items: Vec<DomainLineItem>, tax_rate: Decimal) -> DomainInvoice {
-        DomainInvoice {
+    fn inv(items: Vec<InvoiceLineItem>, tax_rate: Decimal) -> InvoiceDocument {
+        InvoiceDocument {
             number: 1,
             date: date(2026, 1, 1),
+            client: None,
             po_number: None,
             notes: None,
             sender: Party {
@@ -62,15 +53,15 @@ mod tests {
             items,
             tax_rate,
             tax_note: None,
-            currency: crate::currency::Currency::Eur,
-            locale: crate::locale::Locale::EnUs,
+            currency: Currency::Eur,
+            locale: Locale::EnUs,
             date_format: "%Y".into(),
             logo_path: None,
         }
     }
 
-    fn item(q: Decimal, r: Decimal) -> DomainLineItem {
-        DomainLineItem {
+    fn item(q: Decimal, r: Decimal) -> InvoiceLineItem {
+        InvoiceLineItem {
             description: "x".into(),
             quantity: q,
             rate: r,

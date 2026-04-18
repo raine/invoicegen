@@ -1,8 +1,10 @@
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use jiff::civil::Date;
 use rust_decimal::Decimal;
 use std::path::PathBuf;
 
+use crate::domain::{InvoicePatch, LineItemPatch};
 use crate::invoice_input::LineItemInput;
 
 use clap::builder::styling::{AnsiColor, Effects, Styles};
@@ -99,4 +101,75 @@ pub struct GenerateArgs {
     /// Output PDF path (default: <output_dir>/invoice-<number>.pdf)
     #[arg(long, short)]
     pub output: Option<PathBuf>,
+}
+
+impl GenerateArgs {
+    pub fn invoice_patch(&self, require_complete_invoice: bool) -> Result<InvoicePatch> {
+        let mut patch = InvoicePatch {
+            number: self.number,
+            date: self.date,
+            client: self.client.clone(),
+            po_number: self.po.clone(),
+            notes: self.notes.clone(),
+            tax_rate: self.tax_rate,
+            tax_note: self.tax_note.clone(),
+            bill_to: self.bill_to.clone(),
+            ship_to: self.ship_to.clone(),
+            ..InvoicePatch::default()
+        };
+
+        if !self.items.is_empty() {
+            patch.items = Some(self.items.iter().map(LineItemPatch::from).collect());
+        } else if require_complete_invoice {
+            let description = self
+                .description
+                .clone()
+                .context("either --item or --description is required without an input file")?;
+            let quantity = self
+                .quantity
+                .context("either --item or --quantity is required without an input file")?;
+            if description.is_empty() {
+                bail!("--description is empty");
+            }
+            patch.items = Some(vec![LineItemPatch {
+                description: Some(description),
+                quantity: Some(quantity),
+                rate: self.rate,
+            }]);
+        } else if self.description.is_some() || self.quantity.is_some() || self.rate.is_some() {
+            patch.first_item = Some(LineItemPatch {
+                description: self.description.clone(),
+                quantity: self.quantity,
+                rate: self.rate,
+            });
+        }
+
+        if require_complete_invoice {
+            patch.number = Some(
+                patch
+                    .number
+                    .context("--number is required without an input file")?,
+            );
+            patch.date = Some(
+                patch
+                    .date
+                    .context("--date is required without an input file")?,
+            );
+            if patch.client.is_none() && patch.bill_to.is_none() {
+                bail!("either --client or --bill-to is required without an input file");
+            }
+        }
+
+        Ok(patch)
+    }
+}
+
+impl From<&LineItemInput> for LineItemPatch {
+    fn from(value: &LineItemInput) -> Self {
+        Self {
+            description: Some(value.description.clone()),
+            quantity: Some(value.quantity),
+            rate: value.rate,
+        }
+    }
 }

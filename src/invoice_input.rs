@@ -4,6 +4,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, path::PathBuf};
 
+use crate::domain::{InvoicePatch, LineItemPatch, PartyPatch};
+use crate::paths::resolve_relative;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InvoiceFile {
@@ -96,4 +99,40 @@ pub fn load(path: &Path) -> Result<InvoiceFile> {
     let inv: InvoiceFile = serde_path_to_error::deserialize(de)
         .with_context(|| format!("parsing invoice {}", path.display()))?;
     Ok(inv)
+}
+
+impl InvoiceFile {
+    pub fn into_patch(self, invoice_dir: &Path) -> InvoicePatch {
+        InvoicePatch {
+            number: Some(self.number),
+            date: Some(self.date),
+            client: self.client,
+            po_number: self.po_number,
+            notes: self.notes,
+            sender: PartyPatch {
+                name: self.sender_override.name,
+                address: self.sender_override.address,
+                logo_path: self
+                    .sender_override
+                    .logo
+                    .map(|p| resolve_relative(invoice_dir, &p)),
+            },
+            bill_to: self.client_override.bill_to,
+            ship_to: self.client_override.ship_to,
+            items: Some(
+                self.items
+                    .into_iter()
+                    .map(|item| LineItemPatch {
+                        description: Some(item.description),
+                        quantity: Some(item.quantity),
+                        rate: item.rate,
+                    })
+                    .collect(),
+            ),
+            default_rate: self.client_override.default_rate,
+            tax_rate: self.tax_rate,
+            tax_note: self.tax_note,
+            ..InvoicePatch::default()
+        }
+    }
 }
