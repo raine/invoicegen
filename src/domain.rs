@@ -45,16 +45,8 @@ pub struct PartyPatch {
 }
 
 impl PartyPatch {
-    pub fn apply(&mut self, overlay: PartyPatch) {
-        if overlay.name.is_some() {
-            self.name = overlay.name;
-        }
-        if overlay.address.is_some() {
-            self.address = overlay.address;
-        }
-        if overlay.logo_path.is_some() {
-            self.logo_path = overlay.logo_path;
-        }
+    pub fn has_any(&self) -> bool {
+        self.name.is_some() || self.address.is_some() || self.logo_path.is_some()
     }
 }
 
@@ -116,7 +108,9 @@ impl InvoicePatch {
         if overlay.notes.is_some() {
             self.notes = overlay.notes;
         }
-        self.sender.apply(overlay.sender);
+        if overlay.sender.has_any() {
+            self.sender = overlay.sender;
+        }
         if overlay.bill_to.is_some() {
             self.bill_to = overlay.bill_to;
         }

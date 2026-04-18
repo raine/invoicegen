@@ -179,7 +179,7 @@ notes: | # optional, printed below the item table
 tax_rate: 24 # optional, overrides defaults.tax_rate
 tax_note: 'Reverse charge' # optional, overrides defaults.tax_note
 
-sender: # optional; overrides global sender for this invoice
+sender: # optional; replaces the global sender block for this invoice
   name: 'Your Company Ltd.'
   address: |
     123 Main Street
@@ -209,7 +209,8 @@ items: # required, at least one
 - a string like `client: example-client` to use a config client template as-is
 - an object to override a template or define invoice-local client details directly
 
-Invoice-local `sender` and `client` data override global config when present.
+Invoice-local `sender` replaces the global sender block when present. Invoice-local
+`client` data overrides global config or a referenced client template.
 That keeps invoices portable: a YAML + `logo.svg` pair can travel together, and
 the invoice still renders identically on a machine with no global config.
 

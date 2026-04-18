@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn sender_override_partial() {
+    fn sender_override_replaces_global_sender_block() {
         let invoice = InvoicePatch {
             sender: PartyPatch {
                 name: Some("Other".to_string()),
@@ -274,7 +274,7 @@ mod tests {
         };
         let d = merge_with_layers(vec![invoice]).unwrap();
         assert_eq!(d.sender.name, "Other");
-        assert_eq!(d.sender.address, "Home 1");
+        assert_eq!(d.sender.address, "");
     }
 
     #[test]
