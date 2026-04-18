@@ -67,3 +67,12 @@ pub fn load(path: &Path) -> Result<AppConfig> {
         .with_context(|| format!("parsing config {}", path.display()))?;
     Ok(cfg)
 }
+
+/// Load the config if it exists; otherwise return defaults.
+pub fn load_or_default(path: &Path) -> Result<AppConfig> {
+    if path.exists() {
+        load(path)
+    } else {
+        Ok(AppConfig::default())
+    }
+}
