@@ -44,8 +44,8 @@ fn build_from_args(args: &GenerateArgs) -> Result<InvoiceFile> {
     let date = args
         .date
         .context("--date is required without an input file")?;
-    let client = args.client.clone().unwrap_or_default();
-    if client.is_empty() && args.bill_to.is_none() {
+    let client = args.client.clone();
+    if client.is_none() && args.bill_to.is_none() {
         bail!("either --client or --bill-to is required without an input file");
     }
     let description = args

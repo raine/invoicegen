@@ -9,7 +9,8 @@ use std::{fs, path::Path, path::PathBuf};
 pub struct InvoiceFile {
     pub number: u32,
     pub date: Date,
-    pub client: String,
+    #[serde(default)]
+    pub client: Option<String>,
     pub po_number: Option<String>,
     pub notes: Option<String>,
     #[serde(default)]

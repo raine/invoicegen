@@ -34,7 +34,7 @@ pub fn resolve(
         invoice.po_number = Some(p);
     }
     if let Some(c) = args.client.clone() {
-        invoice.client = c;
+        invoice.client = Some(c);
     }
     if let Some(n) = args.notes.clone() {
         invoice.notes = Some(n);
@@ -68,7 +68,10 @@ pub fn resolve(
     }
 
     // 2. Client template (optional — may be absent if overrides provide bill_to)
-    let template = config.clients.get(&invoice.client);
+    let template = invoice
+        .client
+        .as_deref()
+        .and_then(|c| config.clients.get(c));
 
     // 3. Resolve client block (override wins)
     let bill_to = invoice
@@ -78,10 +81,12 @@ pub fn resolve(
         .or_else(|| template.and_then(|t| t.bill_to.clone()))
         .with_context(|| {
             let keys: Vec<_> = config.clients.keys().cloned().collect();
-            format!(
-                "bill_to missing. Set it under client_override in the invoice, or define client '{}' in config (available: {:?})",
-                invoice.client, keys
-            )
+            match &invoice.client {
+                Some(c) => format!(
+                    "bill_to missing. Set it under client_override in the invoice, or define client '{c}' in config (available: {keys:?})"
+                ),
+                None => "bill_to missing. Set it under client_override in the invoice, or set 'client' to a key defined in config".to_string(),
+            }
         })?;
     let ship_to = invoice
         .client_override
