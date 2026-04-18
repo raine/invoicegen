@@ -7,6 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::xdg;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct AppConfig {
@@ -54,8 +56,7 @@ pub struct ClientTemplate {
 }
 
 pub fn default_config_path() -> Result<PathBuf> {
-    let home = dirs::home_dir().context("could not determine home dir")?;
-    Ok(home.join(".config").join("invoice").join("config.yaml"))
+    Ok(xdg::config_dir()?.join("config.yaml"))
 }
 
 pub fn load(path: &Path) -> Result<AppConfig> {
