@@ -5,11 +5,10 @@ use crate::cli::InitArgs;
 use crate::config::default_config_path;
 
 const STARTER: &str = r#"sender:
-  name: "Your Company Oy"
+  name: "Your Company Ltd."
   address: |
-    Street 1
-    00100 Helsinki
-    Finland
+    123 Main Street
+    City, Country
   # logo: ~/.config/invoice/logo.svg
 
 defaults:
