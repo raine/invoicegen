@@ -49,6 +49,23 @@ pub fn resolve(
     {
         first.rate = Some(r);
     }
+    if let Some(d) = args.description.clone()
+        && let Some(first) = invoice.items.first_mut()
+    {
+        first.description = d;
+    }
+    if let Some(t) = args.tax_rate {
+        invoice.tax_rate = Some(t);
+    }
+    if let Some(t) = args.tax_note.clone() {
+        invoice.tax_note = Some(t);
+    }
+    if let Some(b) = args.bill_to.clone() {
+        invoice.client_override.bill_to = Some(b);
+    }
+    if let Some(s) = args.ship_to.clone() {
+        invoice.client_override.ship_to = Some(s);
+    }
 
     // 2. Client template
     let template = config.clients.get(&invoice.client).with_context(|| {
