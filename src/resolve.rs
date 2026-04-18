@@ -39,7 +39,7 @@ pub fn resolve(
     if let Some(n) = args.notes.clone() {
         invoice.notes = Some(n);
     }
-    if let Some(q) = args.hours
+    if let Some(q) = args.quantity
         && let Some(first) = invoice.items.first_mut()
     {
         first.quantity = q;
