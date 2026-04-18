@@ -1,9 +1,11 @@
 pub mod cli;
 pub mod commands;
 pub mod config;
+pub mod currency;
 pub mod domain;
 pub mod invoice;
 pub mod invoice_input;
+pub mod locale;
 pub mod money;
 pub mod paths;
 pub mod pipeline;

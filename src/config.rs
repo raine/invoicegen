@@ -7,6 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::currency::Currency;
+use crate::locale::Locale;
 use crate::xdg;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -28,7 +30,8 @@ pub struct SenderConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DefaultsConfig {
-    pub currency: String,
+    pub currency: Currency,
+    pub locale: Locale,
     pub date_format: String,
     pub output_dir: PathBuf,
     pub tax_rate: Decimal,
@@ -38,7 +41,8 @@ pub struct DefaultsConfig {
 impl Default for DefaultsConfig {
     fn default() -> Self {
         Self {
-            currency: "EUR".to_string(),
+            currency: Currency::Eur,
+            locale: Locale::EnUs,
             date_format: "%b %-d, %Y".to_string(),
             output_dir: PathBuf::from("pdf"),
             tax_rate: Decimal::ZERO,
@@ -74,5 +78,53 @@ pub fn load_or_default(path: &Path) -> Result<AppConfig> {
         load(path)
     } else {
         Ok(AppConfig::default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(yaml: &str) -> Result<AppConfig> {
+        let de = serde_yml::Deserializer::from_str(yaml);
+        Ok(serde_path_to_error::deserialize(de)?)
+    }
+
+    #[test]
+    fn missing_locale_defaults_to_en_us() {
+        let cfg = parse("defaults:\n  currency: EUR\n").unwrap();
+        assert_eq!(cfg.defaults.currency, Currency::Eur);
+        assert_eq!(cfg.defaults.locale, Locale::EnUs);
+    }
+
+    #[test]
+    fn existing_currency_strings_still_work() {
+        for code in ["USD", "EUR", "GBP"] {
+            let yaml = format!("defaults:\n  currency: {code}\n");
+            let cfg = parse(&yaml).unwrap_or_else(|e| panic!("{code}: {e}"));
+            assert_eq!(cfg.defaults.currency.code(), code);
+        }
+    }
+
+    #[test]
+    fn unknown_currency_is_rejected() {
+        let err = parse("defaults:\n  currency: XYZ\n")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("XYZ"), "got: {err}");
+    }
+
+    #[test]
+    fn locale_parses() {
+        let cfg = parse("defaults:\n  currency: EUR\n  locale: fi-FI\n").unwrap();
+        assert_eq!(cfg.defaults.locale, Locale::FiFi);
+    }
+
+    #[test]
+    fn unknown_locale_is_rejected() {
+        let err = parse("defaults:\n  currency: EUR\n  locale: xx-XX\n")
+            .unwrap_err()
+            .to_string();
+        assert!(err.to_lowercase().contains("locale"), "got: {err}");
     }
 }

@@ -3,10 +3,11 @@ use rust_decimal::Decimal;
 use crate::domain::{CalculatedInvoice, CalculatedLineItem, DomainInvoice};
 
 pub fn calculate(invoice: DomainInvoice) -> CalculatedInvoice {
+    let minor = invoice.currency.minor_unit();
     let mut items = Vec::with_capacity(invoice.items.len());
     let mut subtotal = Decimal::ZERO;
     for item in invoice.items {
-        let amount = (item.quantity * item.rate).round_dp(2);
+        let amount = (item.quantity * item.rate).round_dp(minor);
         subtotal += amount;
         items.push(CalculatedLineItem {
             description: item.description,
@@ -15,7 +16,7 @@ pub fn calculate(invoice: DomainInvoice) -> CalculatedInvoice {
             amount,
         });
     }
-    let tax = (subtotal * invoice.tax_rate / Decimal::from(100)).round_dp(2);
+    let tax = (subtotal * invoice.tax_rate / Decimal::from(100)).round_dp(minor);
     let total = subtotal + tax;
 
     CalculatedInvoice {
@@ -33,6 +34,7 @@ pub fn calculate(invoice: DomainInvoice) -> CalculatedInvoice {
         total,
         tax_note: invoice.tax_note,
         currency: invoice.currency,
+        locale: invoice.locale,
         date_format: invoice.date_format,
         logo_path: invoice.logo_path,
     }
@@ -60,7 +62,8 @@ mod tests {
             items,
             tax_rate,
             tax_note: None,
-            currency: "EUR".into(),
+            currency: crate::currency::Currency::Eur,
+            locale: crate::locale::Locale::EnUs,
             date_format: "%Y".into(),
             logo_path: None,
         }

@@ -4,11 +4,12 @@ use rust_decimal::Decimal;
 
 use crate::domain::CalculatedInvoice;
 use crate::invoice::{RenderContext, RenderLineItem, RenderParty};
-use crate::money::{currency_symbol, format_quantity, format_with_symbol};
+use crate::money::{format_money, format_quantity};
 
 pub fn present(calc: &CalculatedInvoice) -> Result<RenderContext> {
-    let symbol = currency_symbol(&calc.currency);
-    let fmt = |d: Decimal| format_with_symbol(symbol, d);
+    let currency = calc.currency;
+    let locale = calc.locale;
+    let fmt = |d: Decimal| format_money(d, currency, locale);
 
     let date_display = strtime::format(&calc.date_format, calc.date)
         .with_context(|| format!("formatting date with '{}'", calc.date_format))?;
@@ -99,7 +100,8 @@ mod tests {
             tax: dec!(0),
             total: dec!(200),
             tax_note: None,
-            currency: "EUR".into(),
+            currency: crate::currency::Currency::Eur,
+            locale: crate::locale::Locale::EnUs,
             date_format: "%Y-%m-%d".into(),
             logo_path: None,
         }
@@ -114,11 +116,21 @@ mod tests {
     }
 
     #[test]
-    fn unknown_currency_has_empty_symbol() {
+    fn formats_fi_fi_suffix() {
         let mut c = base();
-        c.currency = "XYZ".into();
+        c.locale = crate::locale::Locale::FiFi;
         let r = present(&c).unwrap();
-        assert_eq!(r.total_display, "200.00");
+        assert_eq!(r.total_display, "200,00\u{00A0}€");
+    }
+
+    #[test]
+    fn jpy_has_no_decimals() {
+        let mut c = base();
+        c.currency = crate::currency::Currency::Jpy;
+        c.locale = crate::locale::Locale::JaJp;
+        c.total = dec!(1234.56);
+        let r = present(&c).unwrap();
+        assert_eq!(r.total_display, "¥1,235");
     }
 
     #[test]

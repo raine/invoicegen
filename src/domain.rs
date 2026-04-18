@@ -2,6 +2,9 @@ use jiff::civil::Date;
 use rust_decimal::Decimal;
 use std::path::PathBuf;
 
+use crate::currency::Currency;
+use crate::locale::Locale;
+
 #[derive(Debug, Clone)]
 pub struct Party {
     pub name: String,
@@ -27,7 +30,8 @@ pub struct DomainInvoice {
     pub items: Vec<DomainLineItem>,
     pub tax_rate: Decimal,
     pub tax_note: Option<String>,
-    pub currency: String,
+    pub currency: Currency,
+    pub locale: Locale,
     pub date_format: String,
     pub logo_path: Option<PathBuf>,
 }
@@ -55,7 +59,8 @@ pub struct CalculatedInvoice {
     pub tax: Decimal,
     pub total: Decimal,
     pub tax_note: Option<String>,
-    pub currency: String,
+    pub currency: Currency,
+    pub locale: Locale,
     pub date_format: String,
     pub logo_path: Option<PathBuf>,
 }
