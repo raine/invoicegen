@@ -12,11 +12,8 @@ pub fn expand_tilde(p: &Path) -> PathBuf {
 }
 
 pub fn resolve_relative(base: &Path, p: &Path) -> PathBuf {
-    if p.is_absolute() {
-        p.to_path_buf()
-    } else {
-        base.join(p)
-    }
+    let p = expand_tilde(p);
+    if p.is_absolute() { p } else { base.join(p) }
 }
 
 pub fn invoice_dir(invoice_file: &Path) -> Result<PathBuf> {
@@ -24,4 +21,29 @@ pub fn invoice_dir(invoice_file: &Path) -> Result<PathBuf> {
         .parent()
         .context("invoice file has no parent dir")?
         .to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_relative_expands_tilde_before_joining() {
+        let home = dirs::home_dir().expect("home dir available for test");
+        assert_eq!(
+            resolve_relative(
+                Path::new("/tmp/invoices"),
+                Path::new("~/.config/invoice/logo.png")
+            ),
+            home.join(".config/invoice/logo.png")
+        );
+    }
+
+    #[test]
+    fn resolve_relative_joins_non_absolute_paths() {
+        assert_eq!(
+            resolve_relative(Path::new("/tmp/invoices"), Path::new("logo.png")),
+            PathBuf::from("/tmp/invoices/logo.png")
+        );
+    }
 }
