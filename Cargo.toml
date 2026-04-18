@@ -20,3 +20,6 @@ dirs = "6.0"
 typst = "0.14.2"
 typst-pdf = "0.14.2"
 comemo = "0.5"
+
+[dev-dependencies]
+rust_decimal_macros = "1.40"

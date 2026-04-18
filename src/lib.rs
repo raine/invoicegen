@@ -1,10 +1,11 @@
 pub mod cli;
 pub mod commands;
 pub mod config;
+pub mod domain;
 pub mod invoice;
 pub mod invoice_input;
 pub mod money;
 pub mod paths;
+pub mod pipeline;
 pub mod render;
-pub mod resolve;
 pub mod xdg;

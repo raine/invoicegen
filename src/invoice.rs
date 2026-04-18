@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct RenderInvoice {
+pub struct RenderContext {
     pub number: String,
     pub date_display: String,
     pub po_number: String,

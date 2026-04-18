@@ -1,14 +1,15 @@
 use anyhow::{Context, Result, bail};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use crate::cli::GenerateArgs;
-use crate::config::{default_config_path, load_or_default};
+use crate::config::{AppConfig, default_config_path, load_or_default};
 use crate::invoice_input::{
     ClientOverride, InvoiceFile, LineItemInput, SenderOverride, load as load_invoice,
 };
-use crate::paths::invoice_dir;
+use crate::paths::{invoice_dir, resolve_relative};
+use crate::pipeline::{CliOverrides, calculate, merge, present};
 use crate::render::render_pdf;
-use crate::resolve::resolve;
 
 pub fn run(args: GenerateArgs) -> Result<()> {
     let config_path = default_config_path()?;
@@ -19,22 +20,47 @@ pub fn run(args: GenerateArgs) -> Result<()> {
         None => (build_from_args(&args)?, std::env::current_dir()?),
     };
 
-    let resolved = resolve(&config, invoice, &args, &dir)?;
+    let overrides = CliOverrides::from(&args);
+    let domain = merge(invoice, &config, overrides, &dir)?;
+    let calc = calculate(domain);
+    let render_ctx = present(&calc)?;
 
-    let pdf = render_pdf(
-        &resolved.render,
-        resolved.logo_bytes,
-        resolved.logo_virtual_name,
-    )?;
+    let (logo_bytes, logo_virtual_name) = match &calc.logo_path {
+        Some(path) => {
+            let bytes =
+                fs::read(path).with_context(|| format!("reading logo {}", path.display()))?;
+            (Some(bytes), render_ctx.logo_path.clone())
+        }
+        None => (None, None),
+    };
 
-    if let Some(parent) = resolved.output_path.parent() {
-        fs::create_dir_all(parent).ok();
+    let output_path = resolve_output_path(&args.output, &config, &dir, calc.number);
+
+    let pdf = render_pdf(&render_ctx, logo_bytes, logo_virtual_name)?;
+
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("creating output dir {}", parent.display()))?;
     }
-    fs::write(&resolved.output_path, pdf)
-        .with_context(|| format!("writing {}", resolved.output_path.display()))?;
+    fs::write(&output_path, pdf).with_context(|| format!("writing {}", output_path.display()))?;
 
-    println!("Wrote {}", resolved.output_path.display());
+    println!("Wrote {}", output_path.display());
     Ok(())
+}
+
+fn resolve_output_path(
+    cli_output: &Option<PathBuf>,
+    config: &AppConfig,
+    invoice_dir: &Path,
+    number: u32,
+) -> PathBuf {
+    match cli_output {
+        Some(p) => p.clone(),
+        None => {
+            let dir = resolve_relative(invoice_dir, &config.defaults.output_dir);
+            dir.join(format!("invoice-{number}.pdf"))
+        }
+    }
 }
 
 fn build_from_args(args: &GenerateArgs) -> Result<InvoiceFile> {
