@@ -170,21 +170,21 @@ A map of client keys to templates. Each template has:
 ```yaml
 number: 17 # required, integer
 date: 2026-04-18 # required, YYYY-MM-DD
-client: example-client # client template key (optional if bill_to is overridden)
 po_number: '001-015275' # optional
 notes: | # optional, printed below the item table
   Thanks for the work this month.
 tax_rate: 24 # optional, overrides defaults.tax_rate
 tax_note: 'Reverse charge' # optional, overrides defaults.tax_note
 
-sender_override: # optional; overrides global sender for this invoice
+sender: # optional; overrides global sender for this invoice
   name: 'Your Company Ltd.'
   address: |
     123 Main Street
     City, Country
   logo: ./logo.svg # resolved relative to the YAML file
 
-client_override: # optional; overrides the matched client template
+client: # optional alternative to the string form above
+  template: example-client # optional; start from a config client template
   bill_to: |
     One-off client
     Some address
@@ -201,9 +201,14 @@ items: # required, at least one
     rate: 200.00
 ```
 
-The `sender_override` block makes invoices **portable**: a YAML + `logo.svg`
-pair travels together (the logo path is resolved relative to the YAML file), and
-the invoice renders identically on a machine with no global config.
+`client` accepts either:
+
+- a string like `client: example-client` to use a config client template as-is
+- an object to override a template or define invoice-local client details directly
+
+Invoice-local `sender` and `client` data override global config when present.
+That keeps invoices portable: a YAML + `logo.svg` pair can travel together, and
+the invoice still renders identically on a machine with no global config.
 
 ## CLI reference
 
