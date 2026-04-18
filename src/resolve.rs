@@ -24,6 +24,9 @@ pub fn resolve(
     invoice_dir: &Path,
 ) -> Result<Resolved> {
     // 1. CLI overrides onto invoice
+    if !args.items.is_empty() {
+        invoice.items = args.items.clone();
+    }
     if let Some(n) = args.number {
         invoice.number = n;
     }

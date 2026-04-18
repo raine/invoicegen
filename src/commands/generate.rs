@@ -48,17 +48,25 @@ fn build_from_args(args: &GenerateArgs) -> Result<InvoiceFile> {
     if client.is_none() && args.bill_to.is_none() {
         bail!("either --client or --bill-to is required without an input file");
     }
-    let description = args
-        .description
-        .clone()
-        .context("--description is required without an input file")?;
-    let quantity = args
-        .quantity
-        .context("--quantity is required without an input file")?;
-
-    if description.is_empty() {
-        bail!("--description is empty");
-    }
+    let items = if !args.items.is_empty() {
+        args.items.clone()
+    } else {
+        let description = args
+            .description
+            .clone()
+            .context("either --item or --description is required without an input file")?;
+        let quantity = args
+            .quantity
+            .context("either --item or --quantity is required without an input file")?;
+        if description.is_empty() {
+            bail!("--description is empty");
+        }
+        vec![LineItemInput {
+            description,
+            quantity,
+            rate: args.rate,
+        }]
+    };
 
     Ok(InvoiceFile {
         number,
@@ -70,10 +78,6 @@ fn build_from_args(args: &GenerateArgs) -> Result<InvoiceFile> {
         tax_note: None,
         sender_override: SenderOverride::default(),
         client_override: ClientOverride::default(),
-        items: vec![LineItemInput {
-            description,
-            quantity,
-            rate: args.rate,
-        }],
+        items,
     })
 }
