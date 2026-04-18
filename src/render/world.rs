@@ -12,11 +12,27 @@ static INTER_REGULAR: &[u8] = include_bytes!("../../assets/fonts/Inter-Regular.t
 static INTER_BOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-Bold.ttf");
 static INTER_ITALIC: &[u8] = include_bytes!("../../assets/fonts/Inter-Italic.ttf");
 static INTER_BOLD_ITALIC: &[u8] = include_bytes!("../../assets/fonts/Inter-BoldItalic.ttf");
+static INSTRUMENT_SERIF_REGULAR: &[u8] =
+    include_bytes!("../../assets/fonts/InstrumentSerif-Regular.ttf");
+static INSTRUMENT_SERIF_ITALIC: &[u8] =
+    include_bytes!("../../assets/fonts/InstrumentSerif-Italic.ttf");
+static JETBRAINS_MONO_REGULAR: &[u8] =
+    include_bytes!("../../assets/fonts/JetBrainsMono-Regular.ttf");
+static JETBRAINS_MONO_MEDIUM: &[u8] = include_bytes!("../../assets/fonts/JetBrainsMono-Medium.ttf");
 
 fn load_fonts() -> (FontBook, Vec<Font>) {
     let mut book = FontBook::new();
     let mut fonts = Vec::new();
-    for blob in [INTER_REGULAR, INTER_BOLD, INTER_ITALIC, INTER_BOLD_ITALIC] {
+    for blob in [
+        INTER_REGULAR,
+        INTER_BOLD,
+        INTER_ITALIC,
+        INTER_BOLD_ITALIC,
+        INSTRUMENT_SERIF_REGULAR,
+        INSTRUMENT_SERIF_ITALIC,
+        JETBRAINS_MONO_REGULAR,
+        JETBRAINS_MONO_MEDIUM,
+    ] {
         for font in Font::iter(Bytes::new(blob)) {
             book.push(font.info().clone());
             fonts.push(font);
