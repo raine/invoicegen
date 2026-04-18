@@ -42,7 +42,7 @@ brew install raine/invoicegen/invoicegen
 ### Cargo
 
 ```sh
-cargo install --path .
+cargo install invoicegen
 ```
 
 ### From source
