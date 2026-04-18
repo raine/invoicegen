@@ -9,5 +9,6 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Init(args) => commands::init::run(args),
         Command::Generate(args) => commands::generate::run(*args),
+        Command::Docs => commands::docs::run(),
     }
 }

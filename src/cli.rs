@@ -24,6 +24,8 @@ pub enum Command {
     Init(InitArgs),
     /// Render an invoice YAML file to PDF
     Generate(Box<GenerateArgs>),
+    /// Show bundled documentation
+    Docs,
 }
 
 #[derive(Parser)]
