@@ -93,28 +93,47 @@
 
 #v(24pt)
 #block(width: 100%, inset: (y: 15pt), stroke: (top: 0.6pt + hairline, bottom: 0.6pt + hairline))[
-  #grid(
-    columns: (1fr, 0.6pt, 1fr, 0.6pt, 1fr),
-    column-gutter: 24pt,
-    align: (left + top, center, left + top, center, left + top),
-    [
-      #mono-label([ISSUED])
-      #v(4pt)
-      #text(font: "JetBrains Mono", size: 10.5pt)[#inv.date_display]
-    ],
-    [#align(center + horizon)[#vrule]],
-    [
-      #mono-label([PO NUMBER])
-      #v(4pt)
-      #text(font: "JetBrains Mono", size: 10.5pt)[#if inv.po_number == "" { "-" } else { inv.po_number }]
-    ],
-    [#align(center + horizon)[#vrule]],
-    [
-      #mono-label([BALANCE DUE])
-      #v(4pt)
-      #text(font: "JetBrains Mono", size: 12pt, weight: 600)[#inv.balance_due_display]
-    ],
-  )
+  #if inv.po_number == "" [
+    #grid(
+      columns: (1fr, 0.6pt, 1fr),
+      column-gutter: 24pt,
+      align: (left + top, center, left + top),
+      [
+        #mono-label([ISSUED])
+        #v(4pt)
+        #text(font: "JetBrains Mono", size: 10.5pt)[#inv.date_display]
+      ],
+      [#align(center + horizon)[#vrule]],
+      [
+        #mono-label([BALANCE DUE])
+        #v(4pt)
+        #text(font: "JetBrains Mono", size: 12pt, weight: 600)[#inv.balance_due_display]
+      ],
+    )
+  ] else [
+    #grid(
+      columns: (1fr, 0.6pt, 1fr, 0.6pt, 1fr),
+      column-gutter: 24pt,
+      align: (left + top, center, left + top, center, left + top),
+      [
+        #mono-label([ISSUED])
+        #v(4pt)
+        #text(font: "JetBrains Mono", size: 10.5pt)[#inv.date_display]
+      ],
+      [#align(center + horizon)[#vrule]],
+      [
+        #mono-label([PO NUMBER])
+        #v(4pt)
+        #text(font: "JetBrains Mono", size: 10.5pt)[#inv.po_number]
+      ],
+      [#align(center + horizon)[#vrule]],
+      [
+        #mono-label([BALANCE DUE])
+        #v(4pt)
+        #text(font: "JetBrains Mono", size: 12pt, weight: 600)[#inv.balance_due_display]
+      ],
+    )
+  ]
 ]
 
 #v(26pt)
