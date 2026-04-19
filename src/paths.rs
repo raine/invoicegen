@@ -1,5 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
+
+use crate::diagnostics::PathsError;
 
 pub fn expand_tilde(p: &Path) -> PathBuf {
     let s = p.to_string_lossy();
@@ -19,7 +21,9 @@ pub fn resolve_relative(base: &Path, p: &Path) -> PathBuf {
 pub fn invoice_dir(invoice_file: &Path) -> Result<PathBuf> {
     Ok(invoice_file
         .parent()
-        .context("invoice file has no parent dir")?
+        .ok_or_else(|| PathsError::MissingParent {
+            path: invoice_file.to_path_buf(),
+        })?
         .to_path_buf())
 }
 

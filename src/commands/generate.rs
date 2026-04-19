@@ -1,9 +1,10 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::cli::GenerateArgs;
 use crate::config::{AppConfig, default_config_path, load_or_default};
+use crate::diagnostics::GenerateError;
 use crate::invoice_input::load as load_invoice;
 use crate::paths::{invoice_dir, resolve_relative};
 use crate::pipeline::{calculate, merge, present};
@@ -30,8 +31,10 @@ pub fn run(args: GenerateArgs) -> Result<()> {
 
     let (logo_bytes, logo_virtual_name) = match &invoice.logo_path {
         Some(path) => {
-            let bytes =
-                fs::read(path).with_context(|| format!("reading logo {}", path.display()))?;
+            let bytes = fs::read(path).map_err(|source| GenerateError::ReadLogo {
+                path: path.clone(),
+                source,
+            })?;
             (Some(bytes), render_ctx.logo_path.clone())
         }
         None => (None, None),
@@ -44,10 +47,15 @@ pub fn run(args: GenerateArgs) -> Result<()> {
     if let Some(parent) = output_path.parent()
         && !parent.as_os_str().is_empty()
     {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("creating output dir {}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|source| GenerateError::CreateOutputDir {
+            path: parent.to_path_buf(),
+            source,
+        })?;
     }
-    fs::write(&output_path, pdf).with_context(|| format!("writing {}", output_path.display()))?;
+    fs::write(&output_path, pdf).map_err(|source| GenerateError::WriteOutput {
+        path: output_path.clone(),
+        source,
+    })?;
 
     println!("Wrote {}", output_path.display());
     Ok(())
@@ -55,9 +63,18 @@ pub fn run(args: GenerateArgs) -> Result<()> {
 
 fn invoice_base_dir(invoice_file: &Path) -> Result<PathBuf> {
     if invoice_file == Path::new("-") {
-        std::env::current_dir().context("reading current directory for stdin invoice")
+        Ok(
+            std::env::current_dir().map_err(|source| GenerateError::StdinBaseDir {
+                source: source.into(),
+            })?,
+        )
     } else {
-        invoice_dir(invoice_file)
+        Ok(
+            invoice_dir(invoice_file).map_err(|source| GenerateError::InvoiceBaseDir {
+                path: invoice_file.to_path_buf(),
+                source,
+            })?,
+        )
     }
 }
 

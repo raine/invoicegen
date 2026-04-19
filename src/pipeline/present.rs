@@ -1,7 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use jiff::fmt::strtime;
 use rust_decimal::Decimal;
 
+use crate::diagnostics::PresentError;
 use crate::domain::{InvoiceDocument, InvoiceTotals};
 use crate::invoice::{RenderContext, RenderLineItem, RenderParty};
 use crate::money::{format_money, format_quantity};
@@ -11,8 +12,12 @@ pub fn present(invoice: &InvoiceDocument, totals: &InvoiceTotals) -> Result<Rend
     let locale = invoice.locale;
     let fmt = |d: Decimal| format_money(d, currency, locale);
 
-    let date_display = strtime::format(&invoice.date_format, invoice.date)
-        .with_context(|| format!("formatting date with '{}'", invoice.date_format))?;
+    let date_display = strtime::format(&invoice.date_format, invoice.date).map_err(|source| {
+        PresentError::InvalidDateFormat {
+            format: invoice.date_format.clone(),
+            source,
+        }
+    })?;
 
     let items = totals
         .items
@@ -73,6 +78,7 @@ fn split_lines(s: &str) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::currency::Currency;
+    use crate::diagnostics::PresentError;
     use crate::domain::{CalculatedLineItem, InvoiceDocument, InvoiceTotals, Party};
     use crate::locale::Locale;
     use jiff::civil::date;
@@ -182,5 +188,14 @@ mod tests {
         let (invoice, totals) = base();
         let r = present(&invoice, &totals).unwrap();
         assert_eq!(r.logo_path, None);
+    }
+
+    #[test]
+    fn invalid_date_format_reports_format_string() {
+        let (mut invoice, totals) = base();
+        invoice.date_format = "%Q".into();
+        let err = present(&invoice, &totals).unwrap_err();
+        let err = err.downcast::<PresentError>().unwrap();
+        assert!(err.to_string().contains("invalid date_format '%Q'"));
     }
 }
