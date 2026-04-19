@@ -63,7 +63,7 @@ This example is fully self-contained and does not require any global config.
 
 ```yaml
 # examples/demo.yaml
-number: 17
+number: 1
 date: 2026-04-18
 sender:
   name: 'Meridian Studio Ltd.'
@@ -80,7 +80,7 @@ client:
     88 Market Square
     Dublin D02
     Ireland
-  default_rate: 95.00
+  default_rate: 100.00
 po_number: 'BLS-APR-2026-17'
 notes: 'Retainer for April platform support'
 tax_rate: 0
