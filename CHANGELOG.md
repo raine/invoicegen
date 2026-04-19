@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.2 (2026-04-19)
+
+- Get clearer error messages when invoice or config files are invalid, including
+  the exact field that failed and actionable help for common mistakes.
+
 ## v0.1.1 (2026-04-18)
 
 - Read the built-in documentation with `invoicegen docs`, so install and usage
