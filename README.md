@@ -130,6 +130,16 @@ business.
 Once config is in place, your invoice YAML can reference a client template or
 override parts of it inline.
 
+### Using invoicegen with AI agents
+
+The `invoicegen docs` command is a good piece of context to give an AI agent
+before asking it to create invoices for you. It explains the YAML format,
+config structure, and CLI usage, so the agent can generate invoice YAML and
+tell you which `invoicegen generate ...` command to run.
+
+A practical prompt is: "Read `invoicegen docs`, then make me an invoice for
+CLIENT for WORK."
+
 ## Configuration
 
 The global config lives at `$XDG_CONFIG_HOME/invoicegen/config.yaml` (default
